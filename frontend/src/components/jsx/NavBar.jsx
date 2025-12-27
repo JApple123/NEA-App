@@ -1,19 +1,27 @@
 import React, { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import styles from "../styles/NavBar.module.css";
-import CreateModal from "../modals/CreateModal.jsx";
+import CreateModal from "../modals/CreateModal.jsx"; 
 
 const Navbar = () => {
   const [currentPage, setCurrentPage] = useState(() => {
-    const saved = localStorage.getItem("currentPage");
-    return saved === null ? "Dashboard" : saved;
+    return localStorage.getItem("currentPage") || "Dashboard";
   });
 
   const [showModal, setShowModal] = useState(false);
+  const [firstTime, setFirstTime] = useState(true);
+
+  if (firstTime){
+    setCurrentPage("Dashboard")
+    setFirstTime(false)
+  }
+ 
 
   useEffect(() => {
     localStorage.setItem("currentPage", currentPage);
   }, [currentPage]);
+
+  
 
   return (
     <nav className={styles.navbar}>
@@ -62,5 +70,6 @@ const Navbar = () => {
     </nav>
   );
 };
+
 
 export default Navbar;

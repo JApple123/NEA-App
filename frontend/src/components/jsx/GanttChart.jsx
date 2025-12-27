@@ -82,13 +82,13 @@ const GanttChart = () => {
 
   const generateTimelineMarkers = (startDate, endDate, totalDays) => {
     const markers = [];
-    const maxMarkers = 8; // how many labels you want across the top
+    const maxMarkers = 8; 
 
     for (let i = 0; i < maxMarkers; i++) {
-      // Calculate percentage by evenly distributing markers visually
+      
       const percentage = (i / (maxMarkers - 1)) * 100;
       
-      // Calculate the actual date at this percentage of the timeline
+     
       const daysFromStart = (percentage / 100) * totalDays;
       const markerDate = new Date(
         startDate.getTime() + daysFromStart * 24 * 60 * 60 * 1000
@@ -195,7 +195,7 @@ const GanttChart = () => {
                       style={{ left: `${milestonePosition}%` }}
                       title={milestone.name || "Milestone"}
                       onClick={(e) => {
-                        e.stopPropagation(); // prevent project bar click
+                        e.stopPropagation(); 
                         setSelectedMilestone(milestone);
                       }}
                     />
@@ -207,7 +207,6 @@ const GanttChart = () => {
         })}
       </div>
 
-      {/* Modals */}
       {selectedProject && (
         <ProjectViewerModal
           isOpen={!!selectedProject}

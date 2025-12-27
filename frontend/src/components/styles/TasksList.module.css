@@ -9,10 +9,10 @@
   padding: 0;
 }
 
-/* Header row styling */
+
 .taskHeader {
   display: grid;
-  grid-template-columns: 1fr 2fr 1fr 1fr 1fr 2fr; /* name, progress, start, end, risk, project */
+  grid-template-columns: 1fr 2fr 1fr 1fr 1fr 2fr; 
   gap: 1rem;
   padding: 1rem 1.5rem;
   background: #f8fafc;

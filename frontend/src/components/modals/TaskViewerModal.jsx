@@ -24,21 +24,21 @@ const TaskViewerModal = ({ isOpen, task, onClose, onDelete, onSave }) => {
     }
   }, [isOpen, task, isVisible]);
 
-  // Fetch projects on mount or when modal opens
+ 
   useEffect(() => {
     async function fetchProjects() {
       try {
         const data = await getProjects();
         setProjects(data);
       } catch (err) {
-        console.error("❌ Error fetching projects:", err);
+        console.error("Error fetching projects:", err);
       }
     }
 
     if (isOpen) fetchProjects();
   }, [isOpen]);
 
-  // Update editedTask when task prop changes
+
   useEffect(() => {
     if (task) {
       setEditedTask({ ...task });

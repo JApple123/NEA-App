@@ -39,7 +39,7 @@ const MilestoneViewerModal = ({
         const data = await getProjects();
         setProjects(data);
       } catch (err) {
-        console.error("❌ Error fetching projects:", err);
+        console.error("Error fetching projects:", err);
       }
     }
 
@@ -91,17 +91,17 @@ const MilestoneViewerModal = ({
         complete: Number(formData.complete) || 0,
       };
 
-      console.log("💾 Saving milestone with ID:", milestoneId);
-      console.log("📤 Payload being sent:", payload);
+      console.log("Saving milestone with ID:", milestoneId);
+      console.log("Payload being sent:", payload);
 
       const updated = await updateMilestone(milestoneId, payload);
 
-      console.log("✅ Milestone saved successfully:", updated);
+      console.log("Milestone saved successfully:", updated);
 
       if (onSave) onSave(updated);
       handleClose();
     } catch (err) {
-      console.error("❌ Error saving milestone:", err);
+      console.error("Error saving milestone:", err);
       console.error("Error details:", {
         message: err.message,
         response: err.response?.data,
@@ -141,7 +141,7 @@ const MilestoneViewerModal = ({
       if (onDelete) onDelete(milestoneId);
       handleClose();
     } catch (err) {
-      console.error("❌ Error deleting milestone:", err);
+      console.error("Error deleting milestone:", err);
       setError(`Failed to delete milestone: ${err.message || "Unknown error"}`);
     } finally {
       setLoading(false);

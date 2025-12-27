@@ -13,15 +13,15 @@ const ProjectsList = () => {
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
   const [milestones, setMilestones] = useState([]);
-  // const [formData, setFormData] = useState([]);
+
   const [selectedProject, setSelectedProject] = useState(null);
-  // const [sortMethod, setSortMethod] = useState([]); /////////
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const fetchData = async () => {
     try {
-      // setSortMethod([]); ///////
+
       setLoading(true);
       setError(null);
 
@@ -58,7 +58,7 @@ const ProjectsList = () => {
     setSelectedProject(null);
   };
 
-  // const sortSelector = ({ sortMethod = "nearest_end_date" }) => {}; /////////
+  // const sortSelector = ({ sortMethod = "nearest_end_date" }) => {}; //
 
   const StatusIndicator = ({ status = "on track" }) => {
     let statusClass = "";
@@ -106,22 +106,6 @@ const ProjectsList = () => {
         <div className={styles.headerStatus}>STATUS</div>
         <div className={styles.headerOwner}>OWNER</div>
       </div>
-
-      {/* <div className={styles.sortSelector}>
-        <label>Project</label>
-        <select
-          name="project_id"
-          value={formData.project_id}
-          onChange={handleChange}
-          required
-        >
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-      </div> */}
 
       <div className={styles.projectsContainer}>
         {sortedProjects.map((project) => {
