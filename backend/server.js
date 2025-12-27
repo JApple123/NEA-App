@@ -7,10 +7,13 @@ const db = new sqlite3.Database('projectManagementDB.db');
 db.run("PRAGMA foreign_keys = ON");
 
 
-const HOST = 'localhost';
-const PORT = 8888;
+const PORT = process.env.PORT || 8888;
 
-app.use(express.static('public'));
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+
 app.use(cors());
 
 app.use(express.json());
@@ -37,6 +40,7 @@ function validateTask(data) {
   if (typeof data.duration !== 'number') return "Invalid or missing duration";
   if (typeof data.progress !== 'number') return "Invalid or missing progress";
   if (data.progress < 0 || data.progress > 100) return "Progress must be between 0 and 100";
+  //if (typeof data.load !== 'number') return "Invalid or missing load value";
   if (typeof data.project_id !== 'number') return "Invalid or missing project_id";
   if (data.description !== undefined && typeof data.description !== 'string') return "Invalid description";
   return null;
