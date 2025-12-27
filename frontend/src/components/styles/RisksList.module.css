@@ -1,0 +1,134 @@
+/* Container */
+.riskList {
+  width: 100%;
+  background-color: #ffffff;
+  margin: 0;
+  padding: 0;
+}
+
+/* Header row styling */
+.riskHeader {
+  display: grid;
+  grid-template-columns: 1.3fr 0.8fr 0.8fr 0.8fr 0.8fr 1fr 1fr;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  align-items: center;
+  background-color: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Header cells */
+.headerName,
+.headerImpact,
+.headerLikelihood,
+.headerDate,
+.headerTasks,
+.headerProjects {
+  display: flex;
+  align-items: center;
+}
+
+/* Risk rows container */
+.riskContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Individual risk row */
+.riskRow {
+  display: grid;
+  grid-template-columns: 1.3fr 0.8fr 0.8fr 0.8fr 0.8fr 1fr 1fr;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #f1f5f9;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+
+.riskRow:hover {
+  background-color: #f8fafc;
+}
+
+/* Column styles */
+.riskName {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 1rem;
+}
+
+.riskImpact,
+.riskLikelihood,
+.riskDate,
+.riskTasks,
+.riskProjects {
+  font-size: 0.875rem;
+  color: #374151;
+  text-align: left;
+}
+
+/* Date alignment */
+.riskDate {
+  color: #4b5563;
+}
+
+/* Loading / error / empty states */
+.loading,
+.error,
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.error {
+  color: #dc2626;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  margin: 2rem;
+}
+
+.loading {
+  color: #4f46e5;
+}
+
+.empty {
+  color: #6b7280;
+}
+
+/* Responsive (mobile) */
+@media (max-width: 768px) {
+  .riskHeader {
+    display: none;
+  }
+
+  .riskRow {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    background-color: #ffffff;
+    padding: 1rem;
+  }
+
+  .riskName,
+  .riskImpact,
+  .riskLikelihood,
+  .riskDate,
+  .riskTasks,
+  .riskProjects {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+}

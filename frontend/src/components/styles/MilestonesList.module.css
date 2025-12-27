@@ -1,0 +1,171 @@
+/* Container for the milestone list */
+.milestoneList {
+  width: 100%;
+  background-color: #ffffff;
+  margin: 0;
+  padding: 0;
+}
+
+/* Header row styling */
+.milestoneHeader {
+  display: grid;
+  grid-template-columns: 0.5fr 1.3fr 1fr 1fr 1fr;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background-color 0.2s ease;
+  align-items: center;
+  background-color: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+
+.headerName,
+.headerDate,
+.headerRiskScore,
+.headerProject {
+  display: flex;
+  align-items: center;
+}
+
+/* Center header cell for STATUS */
+.headerStatus {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+/* Center indicator within cell */
+.milestoneStatus {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Circle styling */
+.statusIndicator {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Milestone rows container */
+.milestoneContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Individual milestone row */
+.milestoneRows {
+  display: grid;
+  grid-template-columns: 0.5fr 1.3fr 1fr 1fr 1fr;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background-color 0.2s ease;
+  align-items: center;
+}
+
+.milestoneRows:hover {
+  background-color: #f8fafc;
+}
+
+/* Milestone name column */
+.milestoneName {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 1rem;
+}
+
+/* Progress column */
+.milestoneProgress {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 60px;
+}
+
+/* End date column */
+.milestoneDate {
+  font-size: 0.875rem;
+  color: #4b5563;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Risk score column */
+.milestoneRiskScore {
+  font-size: 0.875rem;
+  color: #991b1b;
+  font-weight: 500;
+}
+
+/* Project name column */
+.milestoneProject {
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+/* Loading, error, and empty states */
+.loading,
+.error,
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.error {
+  color: #dc2626;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  margin: 2rem;
+}
+
+.loading {
+  color: #4f46e5;
+}
+
+.empty {
+  color: #6b7280;
+}
+
+
+
+@media (max-width: 768px) {
+  .milestoneHeader {
+    display: none; /* Hide headers on mobile */
+  }
+
+  .milestoneRows {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    background-color: #ffffff;
+    padding: 1rem;
+  }
+
+  .milestoneName,
+  .milestoneProgress,
+  .milestoneDate,
+  .milestoneRiskScore,
+  .milestoneProject {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+}

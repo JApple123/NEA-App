@@ -1,0 +1,22 @@
+.projectsCardWrapper {
+  padding: 5px;
+  width:47%;
+}
+
+.risksCardWrapper {
+  padding: 5px;
+  width:47%;
+}
+
+.dashboardRow {
+  display: flex;
+  align-items: top;
+  justify-content: space-evenly;
+
+}
+
+.ganttChartWrapper {
+  padding: 20px;
+  width: 100%;
+  height: 90%;
+}

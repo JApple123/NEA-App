@@ -1,0 +1,67 @@
+/* Modern Professional Color Scheme: 
+   Background: #FAFBFC (Off-white)
+   Primary: #1A202C (Charcoal)
+   Accent: #4A90E2 (Corporate Blue)
+   Secondary: #718096 (Steel Gray)
+   Hover: #E2F4FF (Light Blue)
+*/
+
+.navbar {
+  background-color: #FAFBFC;
+  border-bottom: 1px solid #E2E8F0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  height: 64px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.navList {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 2rem;
+}
+
+.navList li a {
+  color: #718096;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.navList li a:hover {
+  color: #4A90E2;
+  background-color: #E2F4FF;
+}
+
+.navList li a.active {
+  color: #4A90E2;
+  background-color: #E2F4FF;
+  border-bottom: 2px solid #4A90E2;
+}
+
+.newButton {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+  width : 70px;
+  height : 35px;
+}
+
+.newButton:hover {
+  background-color: #2563eb;
+}
+

@@ -1,0 +1,334 @@
+/* Modal overlay */
+.modalOverlay {
+  opacity: 0; /* start invisible */
+  pointer-events: none; /* prevent clicks when hidden */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  transition: opacity 0.3s ease; /* smooth fade */
+}
+
+.modalOverlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Modal content */
+.modalContent {
+  opacity: 0; /* start invisible */
+  transform: scale(0.95); /* slightly smaller */
+  background: white;
+  border-radius: 12px;
+  width: 700px;
+  max-width: 95vw;
+  padding: 30px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transition: opacity 0.3s ease, transform 0.3s ease; /* smooth fade + scale */
+}
+
+.modalOverlay.open .modalContent {
+  opacity: 1; /* fade in */
+  transform: scale(1); /* scale up */
+}
+
+
+/* Tabs */
+.modalTabs {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.tabButton {
+  flex: 1;
+  padding: 10px 0;
+  border: none;
+  background: #f3f3f3;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+  border-radius: 6px;
+  margin-right: 5px;
+}
+
+.tabButton:last-child {
+  margin-right: 0;
+}
+
+.tabButton.active {
+  background: #007bff;
+  color: white;
+}
+
+/* Form */
+
+.modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 18px; /* match spacing from Task form */
+}
+
+.formRow {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.formRow label {
+  font-weight: 500;
+}
+
+.formRow input,
+.formRow textarea,
+.formRow select {
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* Form buttons */
+.modalButtons,
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.modalButtons button,
+.formActions button {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.modalButtons button[type='submit'],
+.formActions .submitButton {
+  background: #007bff;
+  color: white;
+}
+
+.modalButtons button[type='button'],
+.formActions .cancelButton {
+  background: #e0e0e0;
+}
+
+/* Slider + numeric input */
+.progressContainer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.progressContainer input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  height: 18px;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+  position: relative;
+  border: none;
+  padding: 0 9px; /* Add padding equal to thumb radius */
+}
+
+/* Create the actual track bar */
+.progressContainer input[type="range"]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 18px;
+  border-radius: 9px;
+  background: linear-gradient(
+    to right,
+    #007bff 0%,
+    #007bff var(--progress, 0%),
+    #e0e0e0 var(--progress, 0%),
+    #e0e0e0 100%
+  );
+}
+
+/* Slider thumb - WebKit (Chrome, Safari, Edge) */
+.progressContainer input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #007bff;
+  border: 2px solid white;
+  box-shadow: 0 0 4px rgba(0,0,0,0.3);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  position: relative;
+}
+
+/* Firefox track */
+.progressContainer input[type="range"]::-moz-range-track {
+  width: 100%;
+  height: 18px;
+  border-radius: 9px;
+  background: linear-gradient(
+    to right,
+    #007bff 0%,
+    #007bff var(--progress, 0%),
+    #e0e0e0 var(--progress, 0%),
+    #e0e0e0 100%
+  );
+}
+
+/* Slider thumb - Firefox */
+.progressContainer input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #007bff;
+  border: 2px solid white;
+  box-shadow: 0 0 4px rgba(0,0,0,0.3);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.progressContainer input[type="range"]:hover::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+
+.progressContainer input[type="range"]:hover::-moz-range-thumb {
+  transform: scale(1.15);
+}
+
+/* Numeric input next to slider */
+.progressNumber {
+  width: 55px;
+  text-align: center;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.progressNumber:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+  outline: none;
+}
+
+.multiSelect {
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  min-height: 90px;
+}
+
+.tasksContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.taskButton {
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  background-color: #f9f9f9;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.taskButton:hover {
+  background-color: #e6f0ff;
+  border-color: #007bff;
+}
+
+.taskButtonSelected {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.completionButtons {
+  display: flex;
+  gap: 10px;
+}
+
+.statusButton {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: #f9f9f9;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.statusButton:hover {
+  background-color: #f0f0f0;
+}
+
+.activeComplete {
+  background-color: #d4edda;
+  border-color: #28a745;
+  color: #155724;
+}
+
+.activeIncomplete {
+  background-color: #f8d7da;
+  border-color: #dc3545;
+  color: #721c24;
+}
+
+/* New delete button */
+.deleteButton {
+  background-color: #dc3545;
+  color: white;
+  border-radius: 6px;
+  padding: 8px 18px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.deleteButton:hover {
+  background-color: #b02a37;
+}
+
+.formActions {
+  display: flex;
+  justify-content: space-between; /* space between left and right */
+  align-items: center;
+  margin-top: 20px;
+}
+
+/* Left side container for delete button */
+.leftActions {
+  display: flex;
+  gap: 12px;
+}
+
+/* Right side container for save + cancel buttons */
+.rightActions {
+  display: flex;
+  gap: 12px;
+}

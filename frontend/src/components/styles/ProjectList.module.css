@@ -1,0 +1,238 @@
+/* ProjectList.module.css */
+
+.projectList {
+  width: 100%;
+  max-width: 100%;
+  background: white;
+  margin: 0;
+  padding: 0;
+}
+
+/* Header row styling */
+.projectsHeader {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.headerName,
+.headerProgress,
+.headerStatus,
+.headerOwner {
+  display: flex;
+  align-items: center;
+}
+
+.headerProgress {
+
+  justify-content: center;
+}
+
+.headerStatus,
+.headerOwner {
+  justify-content: center;
+}
+
+/* Projects container */
+.projectsContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Individual project row */
+.projectRow {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background-color 0.2s ease;
+  align-items: center;
+}
+
+.projectRow:hover {
+  background: #f8fafc;
+}
+
+.projectRow:last-child {
+  border-bottom: none;
+}
+
+/* Project name column */
+.projectName {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.projectTitle {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 1rem;
+}
+
+.projectDescription {
+  color: #6b7280;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 300px;
+}
+
+/* Progress column */
+.projectProgress {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 120px;
+}
+
+/* Status column */
+.projectStatus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  min-width: 80px;
+}
+
+.statusGreen {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.statusAmber {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.statusRed {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.statusGrey {
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+}
+
+/* Owner column */
+.projectOwner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  color: #374151;
+}
+
+/* Loading, error, and empty states */
+.loading, .error, .empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+.error {
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  margin: 2rem;
+}
+
+.loading {
+  color: #4f46e5;
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+  .projectsHeader,
+  .projectRow {
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+  
+  .projectDescription {
+    max-width: 200px;
+  }
+}
+
+@media (max-width: 768px) {
+  .projectsHeader,
+  .projectRow {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+  
+  .projectsHeader {
+    display: none; /* Hide headers on mobile */
+  }
+  
+  .projectRow {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    background: white;
+  }
+  
+  .projectName {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+  
+  .projectProgress,
+  .projectStatus,
+  .projectOwner {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .projectProgress {
+    margin-bottom: 0.5rem;
+  }
+  
+  .projectDescription {
+    max-width: none;
+    white-space: normal;
+  }
+}
+
+.statusBlue {
+  background: #d0e7ff;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+}

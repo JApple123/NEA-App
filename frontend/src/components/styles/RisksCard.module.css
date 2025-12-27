@@ -1,0 +1,141 @@
+/* dashboardCard.module.css */
+
+.dashboardCard {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.cardHeader {
+  border-bottom: 1px solid #eaeaea;
+  padding-bottom: 8px;
+}
+
+.cardTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.cardContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.riskHeader {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 2fr; /* Adjusted for 5 columns */
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #6b7280;
+  border-bottom: 1px solid #eaeaea;
+  padding-bottom: 8px;
+}
+
+
+.headerName{
+  text-align: left;
+  padding-left: 8px;
+
+}
+.headerImpact{
+  text-align: center;
+}
+.headerLikelihood {
+  text-align: center;
+}
+
+.headerScore {
+  text-align: center;
+}
+
+.headerProjects{
+  text-align: center;
+}
+
+.risksList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  justify-content: center;
+}
+
+.riskRow {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 2fr; /* Match header */
+  align-items: center;
+  padding: 12px 0;
+  border-radius: 8px;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.2s ease;
+  overflow-x: hidden;
+}
+
+.riskRow:hover {
+  background: #f9fafb;
+}
+
+.riskName {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #111827;
+  padding-left: 8px;
+}
+
+.riskImpact {
+  display: grid;
+  place-items: center;
+}
+
+.riskLikelihood {
+  display: grid;
+  place-items: center;
+}
+
+.riskScore {
+  display: grid;
+  place-items: center;
+}
+
+.riskProjects {
+  font-size: 0.9rem;
+  color: #4b5563;
+  display: grid;
+  place-items: center;
+  overflow-x: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.seeAllContainer {
+  display: flex;
+  justify-content: center;
+}
+
+.seeAllButton {
+  display: inline-block;
+  background: none;
+  color: #4A90E2;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.seeAllButton:hover {
+  color: #2d7ad2;
+}
+

@@ -1,0 +1,158 @@
+/* Container */
+.taskList {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  background: white;
+  margin: 0;
+  padding: 0;
+}
+
+/* Header row styling */
+.taskHeader {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr 1fr 1fr 2fr; /* name, progress, start, end, risk, project */
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.headerName,
+.headerProgress,
+.headerStart,
+.headerEnd,
+.headerRiskScore,
+.headerProject {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Task rows */
+.taskRow {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr 1fr 1fr 2fr;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background-color 0.2s ease;
+  align-items: center;
+}
+
+.taskRow:hover {
+  background-color: #f9fafb;
+}
+
+.taskRow:last-child {
+  border-bottom: none;
+}
+
+/* Task name column */
+.taskName {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 1rem;
+}
+
+/* Progress column */
+.taskProgress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.taskProgress > * {
+  width: 70%;
+  max-width: 150px;
+  text-align: center;
+}
+
+/* Start and End dates */
+.taskStart,
+.taskEnd {
+  text-align: center;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+/* Risk score */
+.taskRisk {
+  text-align: center;
+  font-size: 0.875rem;
+  color: #2d3748;
+}
+
+/* Project column */
+.taskProject {
+  font-weight: 500;
+  color: #374151;
+  text-align: center;
+}
+
+/* Loading, error, and empty states */
+.loading, .error, .empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  font-size: 1rem;
+  color: #6b7280;
+}
+
+.error {
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  margin: 2rem;
+}
+
+.loading {
+  color: #4f46e5;
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+  .taskHeader,
+  .taskRow {
+    grid-template-columns: 1fr 2fr 1fr 1fr 1fr 2fr;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .taskHeader {
+    display: none;
+  }
+
+  .taskRow {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    background: white;
+    padding: 1rem;
+  }
+
+  .taskName,
+  .taskProgress,
+  .taskStart,
+  .taskEnd,
+  .taskRisk,
+  .taskProject {
+    width: 100%;
+    margin-bottom: 0.5rem;
+    justify-content: flex-start;
+  }
+}

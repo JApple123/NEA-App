@@ -1,0 +1,21 @@
+/* Progress Bar Styles */
+.progressContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width :100%;
+}
+
+.progressBar {
+  flex: 1;
+  height: 10px;
+  background-color: #e0e0e0;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #4cafef, #007ad9);
+  transition: width 0.3s ease-in-out;
+}

@@ -1,0 +1,312 @@
+/* Main container */
+.ganttCard {
+  background: #ffffff;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+  padding: 24px;
+   display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.cardHeader {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: large;
+}
+
+
+.cardTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.cardContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Loading, error, and empty states */
+.loadingContainer,
+.errorContainer,
+.emptyContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+  width: 100%;
+  min-height: 200px;
+}
+
+.loadingSpinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e5e7eb;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.errorMessage,
+.emptyMessage {
+  color: #6b7280;
+  margin: 8px 0;
+}
+
+.retryButton {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 24px;
+  border-radius: 16px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+.retryButton:hover {
+  background: #2563eb;
+}
+
+/* Gantt chart specific styles */
+.ganttContainer {
+  width: 96%;
+  overflow-x: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+
+  min-height: 300px;
+  border-radius: 6px;
+  height: auto;
+
+
+}
+
+.timelineHeader {
+  display: flex;
+  border-bottom: 2px solid #d1d5db;
+  background: #f9fafb;
+  min-height: 60px;
+  width: 100%;
+}
+
+.projectLabelsHeader {
+  width: 200px;
+  min-width: 200px;
+  padding: 16px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  background: #f9fafb;
+}
+
+.timelineScale {
+  flex: 1;
+  position: relative;
+  min-width: 800px;
+  height: 60px;
+}
+
+.timelineMarker {
+  position: absolute;;
+  top: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.markerLine {
+  width: 1px;
+  height: 20px;
+  background: #d1d5db;
+  margin-bottom: 4px;
+
+}
+
+.markerLabel {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Gantt body */
+.ganttBody {
+  position: relative;
+  min-height: 240px;
+}
+
+.ganttRow {
+  display: flex;
+  border-bottom: 1px solid #f3f4f6;
+  height: 80px;
+  padding: 10px;
+}
+
+.ganttRow:hover {
+  background: #f9fafb;
+}
+
+.ganttRow:hover .projectLabel {
+  background: #f9fafb;
+}
+
+.projectLabel {
+  width: 200px;
+  min-width: 200px;
+  padding: 16px;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: #fefefe;
+}
+
+.projectName {
+  font-weight: 600;
+  color: #111827;
+  font-size: 14px;
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+.projectOwner {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.2;
+}
+
+.ganttTrack {
+  flex: 1;
+  position: relative;
+  min-width: 800px;
+  padding: 0;
+}
+
+.projectBar {
+  position: absolute;
+  height: 60px;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  border-radius: 20px;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+  display: flex;
+  align-items: center;
+  min-width: 20px;
+  transition: all 0.3s ease;
+}
+
+.projectBar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+}
+
+/* Milestone styles */
+.milestone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: #fbbf24;
+  border-radius: 2px;
+  z-index: 15;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.milestone::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid #f59e0b;
+}
+
+.milestone::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 8px solid #f59e0b;
+}
+
+.milestone:hover {
+  width: 4px;
+  background: #f59e0b;
+}
+
+.milestone:hover::before,
+.milestone:hover::after {
+  border-left-width: 7px;
+  border-right-width: 7px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .projectLabelsHeader,
+  .projectLabel {
+    width: 150px;
+    min-width: 150px;
+  }
+  
+  .timelineScale,
+  .ganttTrack {
+    min-width: 500px;
+  }
+  
+  .projectName {
+    font-size: 13px;
+  }
+  
+  .projectOwner {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .projectLabelsHeader,
+  .projectLabel {
+    width: 120px;
+    min-width: 120px;
+    padding: 12px;
+  }
+  
+  .ganttRow {
+    height: 70px;
+  }
+  
+  .projectBar {
+    height: 30px;
+  }
+  
+  .timelineScale,
+  .ganttTrack {
+    min-width: 400px;
+  }
+}

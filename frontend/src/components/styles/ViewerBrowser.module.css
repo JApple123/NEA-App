@@ -1,0 +1,63 @@
+/* ViewerBrowser.module.css */
+
+/* Main wrapper */
+.viewerBrowser {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.navbar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 1.5rem;
+  height: 64px;
+  position: relative;   /* remove fixed */   /* push it below main navbar */
+}
+
+
+/* The <ul> inside navbar */
+.navList {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 2rem;
+}
+
+/* Default link styling */
+.navItem {
+  color: #718096;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.75rem 1rem;
+  border-radius: 16px;
+  transition: all 0.2s ease;
+}
+
+/* Hover state */
+.navItem:hover {
+  color: #4A90E2;
+  background-color: #E2F4FF;
+}
+
+/* Active link state */
+.navItemActive {
+  color: #4A90E2;
+  background-color: #E2F4FF;
+  border-bottom: 2px solid #4A90E2;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.75rem 1rem;
+  border-radius: 16px;
+  transition: all 0.2s ease;
+}
+
+/* Content area */
+.viewerContent {
+  flex: 1;
+
+}
