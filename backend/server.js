@@ -1,22 +1,23 @@
-const express = require('express');
-const sqlite3 = require('sqlite3');
-const cors = require('cors');
+// server.js
+import express from 'express';
+import cors from 'cors';
+import sqlite3 from 'sqlite3';
+
 
 const app = express();
 const db = new sqlite3.Database('projectManagementDB.db');
 db.run("PRAGMA foreign_keys = ON");
 
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8888;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
 
 
 app.use(cors());
 
 app.use(express.json());
+
+
 
 // Utility function for ISO date validation
 function isValidISODate(str) {
@@ -126,9 +127,7 @@ function validateProjectRisk(data) {
   return null;
 }
 
-app.get('/', (req, res) => {
-  res.send('Welcome to the projects server');
-});
+
 
 
 // === POST FUNCTIONS ===
@@ -1762,7 +1761,7 @@ app.put('/api/projectrisks/:project_id/:risk_id', (req, res) => {
 
 
 app.listen(PORT, () => {
-  console.log(`Server running at http://${HOST}:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
 
 setInterval(() => {
