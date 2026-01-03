@@ -9,7 +9,7 @@ const db = new sqlite3.Database('projectManagementDB.db');
 db.run("PRAGMA foreign_keys = ON");
 
 
-const PORT = process.env.PORT || 8888;
+const PORT = process.env.PORT || 3002;
 
 
 
