@@ -1,1770 +1,1838 @@
-// server.js
-import express from 'express';
-import cors from 'cors';
-import sqlite3 from 'sqlite3';
-
+import express from 'express'
+import pool from './db.js'
 
 const app = express();
-const db = new sqlite3.Database('projectManagementDB.db');
-db.run("PRAGMA foreign_keys = ON");
 
-
-const PORT = process.env.PORT || 3002;
-
-
-
-app.use(cors());
-
+// Middleware
 app.use(express.json());
 
-
-
-// Utility function for ISO date validation
-function isValidISODate(str) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(str);
-}
-
-// Validation functions
-function validateProject(data) {
-  if (typeof data.name !== 'string') return "Invalid or missing name";
-  if (!isValidISODate(data.start_date)) return "Invalid or missing start_date";
-  if (!isValidISODate(data.end_date)) return "Invalid or missing end_date";
-  if (typeof data.owner !== 'string') return "Invalid or missing owner";
-  if (data.description !== undefined && typeof data.description !== 'string') return "Invalid description";
-  return null;
-}
-
-function validateTask(data) {
-  if (typeof data.name !== 'string') return "Invalid or missing name";
-  if (!isValidISODate(data.start_date)) return "Invalid or missing start_date";
-  if (!isValidISODate(data.end_date)) return "Invalid or missing end_date";
-  if (typeof data.duration !== 'number') return "Invalid or missing duration";
-  if (typeof data.progress !== 'number') return "Invalid or missing progress";
-  if (data.progress < 0 || data.progress > 100) return "Progress must be between 0 and 100";
-  //if (typeof data.load !== 'number') return "Invalid or missing load value";
-  if (typeof data.project_id !== 'number') return "Invalid or missing project_id";
-  if (data.description !== undefined && typeof data.description !== 'string') return "Invalid description";
-  return null;
-}
-
-function validateRisk(data) {
-  if (typeof data.name !== 'string') return "Invalid or missing name";
-  if (typeof data.pre_impact !== 'number') return "Invalid or missing pre_impact";
-  if (typeof data.post_impact !== 'number') return "Invalid or missing post_impact";
-  if (typeof data.pre_likelihood !== 'number') return "Invalid or missing pre_likelihood";
-  if (typeof data.post_likelihood !== 'number') return "Invalid or missing post_likelihood";
-  if (typeof data.pre_score !== 'number') return "Invalid or missing pre_score";
-  if (typeof data.post_score !== 'number') return "Invalid or missing post_score";
-  if (typeof data.preparedness !== 'number') return "Invalid or missing preparedness";
-  if (!isValidISODate(data.date)) return "Invalid or missing date";
-  if (data.description !== undefined && typeof data.description !== 'string') return "Invalid description";
-  return null;
-}
-
-function validateResource(data) {
-  if (typeof data.name !== 'string') return "Invalid or missing name";
-  if (typeof data.capacity !== 'number') return "Invalid or missing capacity";
-  if (typeof data.role !== 'string') return "Invalid or missing role";
-  if (typeof data.team_id !== 'number') return "Invalid or missing team_id";
-  if (data.description !== undefined && typeof data.description !== 'string') return "Invalid description";
-  return null;
-}
-
-function validateDeliverable(data) {
-  if (typeof data.name !== 'string') return "Invalid or missing name";
-  if (!isValidISODate(data.start_date)) return "Invalid or missing start_date";
-  if (!isValidISODate(data.end_date)) return "Invalid or missing end_date";
-  if (typeof data.complete !== 'number') return "Invalid or missing complete";
-  if (typeof data.owner !== 'string') return "Invalid or missing owner";
-  if (typeof data.project_id !== 'number') return "Invalid or missing project_id";
-  if (data.description !== undefined && typeof data.description !== 'string') return "Invalid description";
-  return null;
-}
-
-function validateTeam(data) {
-  if (typeof data.name !== 'string') return "Invalid or missing name";
-  if (data.description !== undefined && typeof data.description !== 'string') return "Invalid description";
-  return null;
-}
-
-function validateAssignment(data) {
-  if (typeof data.task_id !== 'number') return "Invalid or missing task_id";
-  if (typeof data.resource_id !== 'number') return "Invalid or missing resource_id";
-  return null;
-}
-
-function validateDeliverableDependency(data) {
-  if (typeof data.source_id !== 'number') return "Invalid or missing source_id";
-  if (typeof data.target_id !== 'number') return "Invalid or missing target_id";
-  if (typeof data.dependency_type !== 'string') return "Invalid or missing dependency_type";
-  if (typeof data.lag !== 'number') return "Invalid or missing lag";
-  return null;
-}
-
-function validateDeliverableTask(data) {
-  if (typeof data.deliverable_id !== 'number') return "Invalid or missing deliverable_id";
-  if (typeof data.task_id !== 'number') return "Invalid or missing task_id";
-  return null;
-}
-
-function validateTaskDependency(data) {
-  if (typeof data.source_id !== 'number') return "Invalid or missing source_id";
-  if (typeof data.target_id !== 'number') return "Invalid or missing target_id";
-  if (typeof data.dependency_type !== 'string') return "Invalid or missing dependency_type";
-  if (typeof data.lag !== 'number') return "Invalid or missing lag";
-  return null;
-}
-
-function validateTaskRisk(data) {
-  if (typeof data.task_id !== 'number') return "Invalid or missing task_id";
-  if (typeof data.risk_id !== 'number') return "Invalid or missing risk_id";
-  return null;
-}
-
-function validateProjectRisk(data) {
-  if (typeof data.project_id !== 'number') return "Invalid or missing project_id";
-  if (typeof data.risk_id !== 'number') return "Invalid or missing risk_id";
-  return null;
-}
-
-
-
-
-// === POST FUNCTIONS ===
-
-function postProject(name, start_date, end_date, owner, description, callback) {
-  let sql = "INSERT INTO Projects (name, start_date, end_date, owner, description) VALUES ($name, $startDate, $endDate, $owner, $description)"; db.run(sql, {
-    $name: name,
-    $startDate: start_date,
-    $endDate: end_date,
-    $owner: owner,
-    $description: description
-  }, function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null);
-    }
-  });
-}
-
-function postTask(id, name, start_date, end_date, duration, progress, project_id, description, callback) {
-  let sql = "INSERT INTO Tasks (name, start_date, end_date, duration, progress, project_id, description) VALUES ($name, $start_date, $end_date, $duration, $progress, $project_id, $description)"; db.run(sql, {
-    $name: name,
-    $start_date: start_date,
-    $end_date: end_date,
-    $duration: duration,
-    $progress: progress,
-    $project_id: project_id,
-    $description: description
-  }, function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null);
-    }
-  });
-}
-
-function postRisk(name, description, pre_impact, post_impact, pre_likelihood, post_likelihood, pre_score, post_score, preparedness, date, callback) {
-  let sql = "INSERT INTO Risks (name, description, pre_impact, post_impact, pre_likelihood, post_likelihood, pre_score, post_score, preparedness, date) VALUES ($name, $description, $pre_impact, $post_impact, $pre_likelihood, $post_likelihood, $pre_score, $post_score, $preparedness, $date)"; db.run(sql, {
-    $name: name,
-    $description: description,
-    $pre_impact: pre_impact,
-    $post_impact: post_impact,
-    $pre_likelihood: pre_likelihood,
-    $post_likelihood: post_likelihood,
-    $pre_score: pre_score,
-    $post_score: post_score,
-    $preparedness: preparedness,
-    $date: date,
-  }, function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null, this.lastID);
-    }
-  });
-}
-
-function postResource(name, capacity, role, team_id, description, callback) {
-  let sql = "INSERT INTO Resources (name, capacity, role, team_id, description) VALUES ($name, $capacity, $role, $team_id, $description)"; db.run(sql, {
-    $name: name,
-    $capacity: capacity,
-    $role: role,
-    $team_id: team_id,
-    $description: description,
-  }, function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null);
-    }
-  });
-}
-
-function postDeliverable(name, start_date, end_date, complete, owner, project_id, description, callback) {
-  let sql = "INSERT INTO Deliverables (name, start_date, end_date, complete, owner, project_id, description) VALUES ($name, $start_date, $end_date, $complete, $owner, $project_id, $description)"; db.run(sql, {
-    $name: name,
-    $start_date: start_date,
-    $end_date: end_date,
-    $complete: complete,
-    $owner: owner,
-    $project_id: project_id,
-    $description: description
-  }, function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null);
-    }
-  });
-}
-
-function postTeam(name, description, callback) {
-  let sql = "INSERT INTO Teams (name, description) VALUES ($name, $description)";
-  db.run(sql, {
-    $name: name,
-    $description: description
-  }, function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null);
-    }
-  });
-}
-
-function postAssignment(task_id, resource_id, callback) {
-  let sql = "INSERT INTO Assignments (task_id, resource_id) VALUES ($task_id, $resource_id)";
-  db.run(sql, {
-    $task_id: task_id,
-    $resource_id: resource_id
-  }, function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null);
-    }
-  });
-}
-
-function postDeliverableDependency(source_id, target_id, dependency_type, lag, callback) {
-  let sql = "INSERT INTO DeliverableDependencies (source_id, target_id, dependency_type, lag) VALUES ($source_id, $target_id, $dependency_type, $lag)";
-  db.run(sql, {
-    $source_id: source_id,
-    $target_id: target_id,
-    $dependency_type: dependency_type,
-    $lag: lag
-  }, function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null);
-    }
-  });
-}
-
-function postDeliverableTask(deliverable_id, task_id, callback) {
-  let sql = "INSERT INTO DeliverableTasks (deliverable_id, task_id) VALUES ($deliverable_id, $task_id)";
-  db.run(sql, {
-    $deliverable_id: deliverable_id,
-    $task_id: task_id,
-  }, function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null);
-    }
-  });
-}
-
-function postTaskDependency(source_id, target_id, dependency_type, lag, callback) {
-  let sql = "INSERT INTO TaskDependencies (source_id, target_id, dependency_type, lag) VALUES ($source_id, $target_id, $dependency_type, $lag)";
-  db.run(sql, {
-    $source_id: source_id,
-    $target_id: target_id,
-    $dependency_type: dependency_type,
-    $lag: lag
-  }, function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null);
-    }
-  });
-}
-
-function postTaskRisk(task_id, risk_id, callback) {
-  let sql = "INSERT INTO TaskRisks (task_id, risk_id) VALUES ($task_id, $risk_id)";
-  db.run(sql, {
-    $task_id: task_id,
-    $risk_id: risk_id,
-  }, function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null);
-    }
-  });
-}
-
-function postProjectRisk(project_id, risk_id, callback) {
-  let sql = "INSERT INTO ProjectRisks (project_id, risk_id) VALUES ($project_id, $risk_id)";
-  db.run(sql, {
-    $project_id: project_id,
-    $risk_id: risk_id,
-  }, function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null);
-    }
-  });
-}
-
-
-// === POST ROUTES ===
-
-app.post('/api/projects', (req, res) => {
-  const validationError = validateProject(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-  const { name, start_date, end_date, owner, description } = req.body;
-  postProject(name, start_date, end_date, owner, description, (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      res.status(201).json({ message: 'Project created successfully' });
-    }
-  });
-});
-
-app.post('/api/tasks', (req, res) => {
-  const validationError = validateTask(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-  const { id, name, start_date, end_date, duration, progress, project_id, description } = req.body;
-  postTask(id, name, start_date, end_date, duration, progress, project_id, description, (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      res.status(201).json({ message: 'Task created successfully' });
-    }
-  });
-});
-
-app.post('/api/risks', (req, res) => {
-  const validationError = validateRisk(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-  const { name, description, pre_impact, post_impact, pre_likelihood, post_likelihood, pre_score, post_score, preparedness, date } = req.body;
-
-  postRisk(name, description, pre_impact, post_impact, pre_likelihood, post_likelihood, pre_score, post_score, preparedness, date, (err, insertedId) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      // RETURN THE NEWLY CREATED RISK ID
-      res.status(201).json({ message: 'Risk created successfully', id: insertedId });
-    }
-  });
-});
-
-app.post('/api/resources', (req, res) => {
-  const validationError = validateResource(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-  const { name, capacity, role, team_id, description } = req.body;
-  postResource(name, capacity, role, team_id, description, (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      res.status(201).json({ message: 'Resource created successfully' });
-    }
-  });
-});
-
-app.post('/api/deliverables', (req, res) => {
-  const validationError = validateDeliverable(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-  const { name, start_date, end_date, complete, owner, project_id, description } = req.body;
-  postDeliverable(name, start_date, end_date, complete, owner, project_id, description, (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      res.status(201).json({ message: 'Deliverable created successfully' });
-    }
-  });
-});
-
-app.post('/api/teams', (req, res) => {
-  const validationError = validateTeam(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-  const { name, description } = req.body;
-  postTeam(name, description, (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      res.status(201).json({ message: 'Team created successfully' });
-    }
-  });
-});
-
-app.post('/api/assignments', (req, res) => {
-  const validationError = validateAssignment(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-  const { task_id, resource_id } = req.body;
-  postAssignment(task_id, resource_id, (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      res.status(201).json({ message: 'Assignment created successfully' });
-    }
-  });
-});
-
-app.post('/api/deliverabledependencies', (req, res) => {
-  const validationError = validateDeliverableDependency(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-  const { source_id, target_id, dependency_type, lag } = req.body;
-  postDeliverableDependency(source_id, target_id, dependency_type, lag, (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      res.status(201).json({ message: 'Deliverable dependency created successfully' });
-    }
-  });
-});
-
-app.post('/api/deliverabletasks', (req, res) => {
-  const validationError = validateDeliverableTask(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-  const { deliverable_id, task_id } = req.body;
-  postDeliverableTask(deliverable_id, task_id, (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      res.status(201).json({ message: 'Deliverable dependency created successfully' });
-    }
-  });
-});
-
-app.post('/api/taskdependencies', (req, res) => {
-  const validationError = validateTaskDependency(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-  const { source_id, target_id, dependency_type, lag } = req.body;
-  postTaskDependency(source_id, target_id, dependency_type, lag, (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      res.status(201).json({ message: 'Task dependency created successfully' });
-    }
-  });
-});
-
-app.post('/api/taskrisks', (req, res) => {
-  const validationError = validateTaskRisk(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-  const { task_id, risk_id } = req.body;
-  postTaskRisk(task_id, risk_id, (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      res.status(201).json({ message: 'Task risk created successfully' });
-    }
-  });
-});
-
-app.post('/api/projectrisks', (req, res) => {
-  const validationError = validateProjectRisk(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-  const { project_id, risk_id } = req.body;
-  postProjectRisk(project_id, risk_id, (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      res.status(201).json({ message: 'Project risk created successfully' });
-    }
-  });
-});
-
-// === GET BY ID FUNCTIONS ===
-
-function getProjectById(id, callback) {
-  db.get("SELECT * FROM Projects WHERE project_id = ?", [id], (err, row) => {
-    if (err) {
-      callback(err);
-    } else if (!row) {
-      callback(new Error("Project not found"));
-    } else {
-      callback(null, row);
-    }
-  });
-}
-
-function getTaskById(id, callback) {
-  db.get("SELECT * FROM Tasks WHERE task_id = ?", [id], (err, row) => {
-    if (err) {
-      callback(err);
-    } else if (!row) {
-      callback(new Error("Task not found"));
-    } else {
-      callback(null, row);
-    }
-  });
-}
-
-function getDeliverableById(id, callback) {
-  db.get("SELECT * FROM Deliverables WHERE deliverable_id = ?", [id], (err, row) => {
-    if (err) {
-      callback(err);
-    } else if (!row) {
-      callback(new Error("Deliverable not found"));
-    } else {
-      callback(null, row);
-    }
-  });
-}
-
-function getRiskById(id, callback) {
-  db.get("SELECT * FROM Risks WHERE risk_id = ?", [id], (err, row) => {
-    if (err) {
-      callback(err);
-    } else if (!row) {
-      callback(new Error("Risk not found"));
-    } else {
-      callback(null, row);
-    }
-  });
-}
-
-function getTeamById(id, callback) {
-  db.get("SELECT * FROM Teams WHERE team_id = ?", [id], (err, row) => {
-    if (err) {
-      callback(err);
-    } else if (!row) {
-      callback(new Error("Team not found"));
-    } else {
-      callback(null, row);
-    }
-  });
-}
-
-function getResourceById(id, callback) {
-  db.get("SELECT * FROM Resources WHERE resource_id = ?", [id], (err, row) => {
-    if (err) {
-      callback(err);
-    } else if (!row) {
-      callback(new Error("Resource not found"));
-    } else {
-      callback(null, row);
-    }
-  });
-}
-
-function getAssignmentById(task_id, resource_id, callback) {
-  db.get("SELECT * FROM Assignments WHERE task_id = ? AND resource_id = ?", [task_id, resource_id], (err, row) => {
-    if (err) {
-      callback(err);
-    } else if (!row) {
-      callback(new Error("Assignment not found"));
-    } else {
-      callback(null, row);
-    }
-  });
-}
-
-function getDeliverableTaskById(deliverable_id, task_id, callback) {
-  db.get("SELECT * FROM DeliverableTasks WHERE deliverable_id = ? AND task_id = ?", [deliverable_id, task_id], (err, row) => {
-    if (err) {
-      callback(err);
-    } else if (!row) {
-      callback(new Error("DeliverableTask not found"));
-    } else {
-      callback(null, row);
-    }
-  });
-}
-
-function getTaskRiskById(task_id, risk_id, callback) {
-  db.get("SELECT * FROM TaskRisks WHERE task_id = ? AND risk_id = ?", [task_id, risk_id], (err, row) => {
-    if (err) {
-      callback(err);
-    } else if (!row) {
-      callback(new Error("TaskRisk not found"));
-    } else {
-      callback(null, row);
-    }
-  });
-}
-
-function getProjectRiskById(project_id, risk_id, callback) {
-  db.get("SELECT * FROM ProjectRisks WHERE project_id = ? AND risk_id = ?", [project_id, risk_id], (err, row) => {
-    if (err) {
-      callback(err);
-    } else if (!row) {
-      callback(new Error("ProjectRisk not found"));
-    } else {
-      callback(null, row);
-    }
-  });
-}
-
-function getTaskDependencyById(source_id, target_id, callback) {
-  db.get("SELECT * FROM TaskDependencies WHERE source_id = ? AND target_id = ?", [source_id, target_id], (err, row) => {
-    if (err) {
-      callback(err);
-    } else if (!row) {
-      callback(new Error("TaskDependency not found"));
-    } else {
-      callback(null, row);
-    }
-  });
-}
-
-function getDeliverableDependencyById(source_id, target_id, callback) {
-  db.get("SELECT * FROM DeliverableDependencies WHERE source_id = ? AND target_id = ?", [source_id, target_id], (err, row) => {
-    if (err) {
-      callback(err);
-    } else if (!row) {
-      callback(new Error("DeliverableDependency not found"));
-    } else {
-      callback(null, row);
-    }
-  });
-}
-
-// === GET BY ID ROUTES ===
-
-app.get('/api/projects/:id', (req, res) => {
-  const id = Number(req.params.id);
-  getProjectById(id, (err, project) => {
-    if (err) {
-      res.status(404).json({ error: err.message });
-    } else {
-      res.json(project);
-    }
-  });
-});
-
-app.get('/api/tasks/:id', (req, res) => {
-  const id = Number(req.params.id);
-  getTaskById(id, (err, task) => {
-    if (err) {
-      res.status(404).json({ error: err.message });
-    } else {
-      res.json(task);
-    }
-  });
-});
-
-app.get('/api/deliverables/:id', (req, res) => {
-  const id = Number(req.params.id);
-  getDeliverableById(id, (err, deliverable) => {
-    if (err) {
-      res.status(404).json({ error: err.message });
-    } else {
-      res.json(deliverable);
-    }
-  });
-});
-
-app.get('/api/risks/:id', (req, res) => {
-  const id = Number(req.params.id);
-  getRiskById(id, (err, risk) => {
-    if (err) {
-      res.status(404).json({ error: err.message });
-    } else {
-      res.json(risk);
-    }
-  });
-});
-
-app.get('/api/teams/:id', (req, res) => {
-  const id = Number(req.params.id);
-  getTeamById(id, (err, team) => {
-    if (err) {
-      res.status(404).json({ error: err.message });
-    } else {
-      res.json(team);
-    }
-  });
-});
-
-app.get('/api/resources/:id', (req, res) => {
-  const id = Number(req.params.id);
-  getResourceById(id, (err, resource) => {
-    if (err) {
-      res.status(404).json({ error: err.message });
-    } else {
-      res.json(resource);
-    }
-  });
-});
-
-app.get('/api/assignments/:task_id/:resource_id', (req, res) => {
-  const { task_id, resource_id } = req.params;
-  getAssignmentById(Number(task_id), Number(resource_id), (err, assignment) => {
-    if (err) {
-      res.status(404).json({ error: err.message });
-    } else {
-      res.json(assignment);
-    }
-  });
-});
-
-app.get('/api/deliverabletasks/:deliverable_id/:task_id', (req, res) => {
-  const { deliverable_id, task_id } = req.params;
-  getDeliverableTaskById(Number(deliverable_id), Number(task_id), (err, relation) => {
-    if (err) {
-      res.status(404).json({ error: err.message });
-    } else {
-      res.json(relation);
-    }
-  });
-});
-
-app.get('/api/taskrisks/:task_id/:risk_id', (req, res) => {
-  const { task_id, risk_id } = req.params;
-  getTaskRiskById(Number(task_id), Number(risk_id), (err, taskrisk) => {
-    if (err) {
-      res.status(404).json({ error: err.message });
-    } else {
-      res.json(taskrisk);
-    }
-  });
-});
-
-app.get('/api/projectrisks/:project_id/:risk_id', (req, res) => {
-  const { project_id, risk_id } = req.params;
-  getProjectRiskById(Number(project_id), Number(risk_id), (err, projectrisk) => {
-    if (err) {
-      res.status(404).json({ error: err.message });
-    } else {
-      res.json(projectrisk);
-    }
-  });
-});
-
-app.get('/api/taskdependencies/:source_id/:target_id', (req, res) => {
-  const { source_id, target_id } = req.params;
-  getTaskDependencyById(Number(source_id), Number(target_id), (err, dependency) => {
-    if (err) {
-      res.status(404).json({ error: err.message });
-    } else {
-      res.json(dependency);
-    }
-  });
-});
-
-app.get('/api/deliverabledependencies/:source_id/:target_id', (req, res) => {
-  const { source_id, target_id } = req.params;
-  getDeliverableDependencyById(Number(source_id), Number(target_id), (err, dependency) => {
-    if (err) {
-      res.status(404).json({ error: err.message });
-    } else {
-      res.json(dependency);
-    }
-  });
-});
-
-
-
-// === GET FUNCTIONS ===
-
-function getProjects(callback) {
-  db.all("SELECT * FROM Projects;", (err, rows) => {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null, rows);
-    }
-  });
-}
-
-function getTasks(callback) {
-  db.all("SELECT * FROM Tasks;", (err, rows) => {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null, rows);
-    }
-  });
-}
-
-function getRisks(callback) {
-  db.all("SELECT * FROM Risks;", (err, rows) => {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null, rows);
-    }
-  });
-}
-
-function getResources(callback) {
-  db.all("SELECT * FROM Resources;", (err, rows) => {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null, rows);
-    }
-  });
-}
-
-function getDeliverables(callback) {
-  db.all("SELECT * FROM Deliverables;", (err, rows) => {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null, rows);
-    }
-  });
-}
-
-function getTeams(callback) {
-  db.all("SELECT * FROM Teams;", (err, rows) => {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null, rows);
-    }
-  });
-}
-
-function getAssignments(callback) {
-  db.all("SELECT * FROM Assignments;", (err, rows) => {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null, rows);
-    }
-  });
-}
-
-function getDeliverableDependencies(callback) {
-  db.all("SELECT * FROM DeliverableDependencies;", (err, rows) => {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null, rows);
-    }
-  });
-}
-
-function getDeliverableTasks(callback) {
-  db.all("SELECT * FROM DeliverableTasks;", (err, rows) => {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null, rows);
-    }
-  });
-}
-
-
-function getTaskDependencies(callback) {
-  db.all("SELECT * FROM TaskDependencies;", (err, rows) => {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null, rows);
-    }
-  });
-}
-
-function getTaskRisks(callback) {
-  db.all("SELECT * FROM TaskRisks;", (err, rows) => {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null, rows);
-    }
-  });
-}
-
-function getProjectRisks(callback) {
-  db.all("SELECT * FROM ProjectRisks;", (err, rows) => {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else {
-      callback(null, rows);
-    }
-  });
-}
-
-
-// === GET ROUTES ===
-
-app.get('/api/projects', (req, res) => {
-  getProjects((err, projects) => {
-    if (err) {
-      res.status(500).send('Error retrieving projects');
-    } else {
-      res.json(projects);
-    }
-  });
-});
-
-app.get('/api/tasks', (req, res) => {
-  getTasks((err, tasks) => {
-    if (err) {
-      res.status(500).send('Error retrieving tasks');
-    } else {
-      res.json(tasks);
-    }
-  });
-});
-
-app.get('/api/risks', (req, res) => {
-  getRisks((err, risks) => {
-    if (err) {
-      res.status(500).send('Error retrieving risks');
-    } else {
-      res.json(risks);
-    }
-  });
-});
-
-app.get('/api/resources', (req, res) => {
-  getResources((err, resources) => {
-    if (err) {
-      res.status(500).send('Error retrieving resources');
-    } else {
-      res.json(resources);
-    }
-  });
-});
-
-app.get('/api/deliverables', (req, res) => {
-  getDeliverables((err, deliverables) => {
-    if (err) {
-      res.status(500).send('Error retrieving deliverables');
-    } else {
-      res.json(deliverables);
-    }
-  });
-});
-
-app.get('/api/teams', (req, res) => {
-  getTeams((err, teams) => {
-    if (err) {
-      res.status(500).send('Error retrieving teams');
-    } else {
-      res.json(teams);
-    }
-  });
-});
-
-app.get('/api/assignments', (req, res) => {
-  getAssignments((err, assignments) => {
-    if (err) {
-      res.status(500).json({ error: 'Error retrieving assignments' });
-    } else {
-      res.json(assignments);
-    }
-  });
-});
-
-app.get('/api/deliverabledependencies', (req, res) => {
-  getDeliverableDependencies((err, deliverabledependencies) => {
-    if (err) {
-      res.status(500).json({ error: 'Error retrieving deliverable dependencies' });
-    } else {
-      res.json(deliverabledependencies);
-    }
-  });
-});
-
-app.get('/api/deliverabletasks', (req, res) => {
-  getDeliverableTasks((err, deliverabletasks) => {
-    if (err) {
-      res.status(500).json({ error: 'Error retrieving deliverable tasks' });
-    } else {
-      res.json(deliverabletasks);
-    }
-  });
-});
-
-app.get('/api/taskdependencies', (req, res) => {
-  getTaskDependencies((err, taskdependencies) => {
-    if (err) {
-      res.status(500).json({ error: 'Error retrieving task dependencies' });
-    } else {
-      res.json(taskdependencies);
-    }
-  });
-});
-
-app.get('/api/taskrisks', (req, res) => {
-  getTaskRisks((err, taskrisks) => {
-    if (err) {
-      res.status(500).json({ error: 'Error retrieving task risks' });
-    } else {
-      res.json(taskrisks);
-    }
-  });
-});
-
-app.get('/api/projectrisks', (req, res) => {
-  getProjectRisks((err, projectrisks) => {
-    if (err) {
-      res.status(500).json({ error: 'Error retrieving project risks' });
-    } else {
-      res.json(projectrisks);
-    }
-  });
-});
-
-
-// DELETE FUNCTIONS
-
-function deleteProject(id, callback) {
-  db.run("DELETE FROM Projects WHERE project_id = ?", [id], function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Project not found"));
-    } else {
-      callback(null);
-    }
-  });
-}
-
-function deleteTask(id, callback) {
-  db.run("DELETE FROM Tasks WHERE task_id = ?", [id], function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Task not found"));
-    } else {
-      callback(null);
-    }
-  });
-}
-
-function deleteRisk(id, callback) {
-  db.run("DELETE FROM Risks WHERE risk_id = ?", [id], function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Risk not found"));
-    } else {
-      callback(null);
-    }
-  });
-}
-
-function deleteResource(id, callback) {
-  db.run("DELETE FROM Resources WHERE resource_id = ?", [id], function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Resource not found"));
-    } else {
-      callback(null);
-    }
-  });
-}
-
-function deleteDeliverable(id, callback) {
-  db.run("DELETE FROM Deliverables WHERE deliverable_id = ?", [id], function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Deliverable not found"));
-    } else {
-      callback(null);
-    }
-  });
-}
-
-function deleteTeam(id, callback) {
-  db.run("DELETE FROM Teams WHERE team_id = ?", [id], function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Team not found"));
-    } else {
-      callback(null);
-    }
-  });
-}
-
-function deleteAssignment(task_id, resource_id, callback) {
-  db.run("DELETE FROM Assignments WHERE task_id = ? AND resource_id = ?", [task_id, resource_id], function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Assignment not found"));
-    } else {
-      callback(null);
-    }
-  }
-  );
-}
-
-function deleteDeliverableDependency(source_id, target_id, callback) {
-  db.run("DELETE FROM DeliverableDependencies WHERE source_id = ? AND target_id = ?", [source_id, target_id], function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Deliverable dependency not found"));
-    } else {
-      callback(null);
-    }
-  }
-  );
-}
-
-function deleteDeliverableTask(deliverable_id, task_id, callback) {
-  db.run("DELETE FROM DeliverableTasks WHERE deliverable_id = ? AND task_id = ?", [deliverable_id, task_id], function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Deliverable task not found"));
-    } else {
-      callback(null);
-    }
-  }
-  );
-}
-
-function deleteTaskDependency(source_id, target_id, callback) {
-  db.run("DELETE FROM TaskDependencies WHERE source_id = ? AND target_id = ?", [source_id, target_id], function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Task dependency not found"));
-    } else {
-      callback(null);
-    }
-  }
-  );
-}
-
-function deleteTaskRisk(task_id, risk_id, callback) {
-  db.run("DELETE FROM TaskRisks WHERE task_id = ? AND risk_id = ?", [task_id, risk_id], function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Task risk not found"));
-    } else {
-      callback(null);
-    }
-  }
-  );
-}
-
-function deleteProjectRisk(project_id, risk_id, callback) {
-  db.run("DELETE FROM ProjectRisks WHERE project_id = ? AND risk_id = ?", [project_id, risk_id], function (err) {
-    if (err) {
-      console.log(err);
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Project risk not found"));
-    } else {
-      callback(null);
-    }
-  });
-}
-
-app.delete('/api/projects/:id', (req, res) => {
-  const projectId = req.params.id;
-  console.log(`Attempting to delete project ${projectId}`);
-
-  db.run(`UPDATE tasks SET project_id = NULL WHERE project_id = ?`, [projectId], (taskErr) => {
-    if (taskErr) {
-      console.error('❌ Error unlinking tasks:', taskErr.message);
-      return res.status(500).json({ message: 'Error unlinking tasks', err: taskErr.message });
-    }
-    console.log('✅ Tasks unlinked');
-
-    db.run(`UPDATE deliverables SET project_id = NULL WHERE project_id = ?`, [projectId], (deliverableErr) => {
-      if (deliverableErr) {
-        console.error('❌ Error unlinking deliverables:', deliverableErr.message);
-        return res.status(500).json({ message: 'Error unlinking deliverables', err: deliverableErr.message });
-      }
-      console.log('✅ Deliverables unlinked');
-
-      db.run(`DELETE FROM projects WHERE project_id = ?`, [projectId], function (deleteErr) {
-        if (deleteErr) {
-          console.error('❌ Error deleting project:', deleteErr.message);
-          return res.status(500).json({ message: 'Error deleting project', err: deleteErr.message });
-        }
-        console.log('✅ Project deleted successfully');
-        res.status(200).json({ message: 'Project deleted successfully' });
-      });
+// Validation helpers
+const isValidUUID = (uuid) => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+};
+
+const isValidISODate = (date) => {
+  const parsed = new Date(date);
+  return !isNaN(parsed.getTime());
+};
+
+// ============================================================================
+// HEALTH CHECK
+// ============================================================================
+
+app.get('/health/db', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT NOW()');
+    res.json({ 
+      status: 'healthy', 
+      database: 'connected',
+      timestamp: result.rows[0].now 
     });
-  });
+  } catch (error) {
+    console.error('Database health check failed:', error);
+    res.status(500).json({ 
+      status: 'unhealthy', 
+      database: 'disconnected',
+      error: error.message 
+    });
+  }
 });
 
-app.delete('/api/tasks/:id', (req, res) => {
-  deleteTask(req.params.id, (err) => {
-    if (err) {
-      res.status(500).json({ message: "Error deleting task" });
-    } else {
-      res.json({ message: "Task deleted successfully" });
+// ============================================================================
+// TEAMS ROUTES
+// ============================================================================
+
+// Create team
+app.post('/api/teams', async (req, res) => {
+  try {
+    const { name, description } = req.body;
+
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ error: 'Name is required and must be a string' });
     }
-  });
+
+    const query = `
+      INSERT INTO teams (name, description)
+      VALUES ($1, $2)
+      RETURNING *
+    `;
+    
+    const result = await pool.query(query, [name, description || null]);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating team:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-app.delete('/api/risks/:id', (req, res) => {
-  deleteRisk(req.params.id, (err) => {
-    if (err) {
-      res.status(500).json({ message: "Error deleting risk" });
-    } else {
-      res.json({ message: "Risk deleted successfully" });
-    }
-  });
+// Get all teams
+app.get('/api/teams', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM teams ORDER BY created_at DESC');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching teams:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-app.delete('/api/resources/:id', (req, res) => {
-  deleteResource(req.params.id, (err) => {
-    if (err) {
-      res.status(500).json({ message: "Error deleting resource" });
-    } else {
-      res.json({ message: "Resource deleted successfully" });
+// Get team by ID
+app.get('/api/teams/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid team ID format' });
     }
-  });
+
+    const result = await pool.query('SELECT * FROM teams WHERE team_id = $1', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching team:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-app.delete('/api/deliverables/:id', (req, res) => {
-  deleteDeliverable(req.params.id, (err) => {
-    if (err) {
-      res.status(500).json({ message: "Error deleting deliverable" });
-    } else {
-      res.json({ message: "Deliverable deleted successfully" });
+// Update team
+app.put('/api/teams/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description } = req.body;
+
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid team ID format' });
     }
-  });
+
+    if (name !== undefined && typeof name !== 'string') {
+      return res.status(400).json({ error: 'Name must be a string' });
+    }
+
+    const query = `
+      UPDATE teams 
+      SET name = COALESCE($1, name),
+          description = COALESCE($2, description)
+      WHERE team_id = $3
+      RETURNING *
+    `;
+    
+    const result = await pool.query(query, [name, description, id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating team:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-app.delete('/api/teams/:id', (req, res) => {
-  deleteTeam(req.params.id, (err) => {
-    if (err) {
-      res.status(500).json({ message: "Error deleting team" });
-    } else {
-      res.json({ message: "Team deleted successfully" });
+// Delete team
+app.delete('/api/teams/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid team ID format' });
     }
-  });
+
+    const result = await pool.query('DELETE FROM teams WHERE team_id = $1 RETURNING team_id', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
+
+    res.json({ message: 'Team deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting team:', error);
+    if (error.code === '23503') {
+      return res.status(400).json({ error: 'Cannot delete team with existing resources' });
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-app.delete('/api/assignments/:task_id/:resource_id', (req, res) => {
-  const { task_id, resource_id } = req.params;
+// ============================================================================
+// PROJECTS ROUTES
+// ============================================================================
 
-  deleteAssignment(task_id, resource_id, (err) => {
-    if (err) {
-      res.status(500).json({ message: "Error deleting assignment" });
-    } else {
-      res.json({ message: "Assignment deleted successfully" });
+// Create project
+app.post('/api/projects', async (req, res) => {
+  try {
+    const { name, startDate, endDate, ownerId, description } = req.body;
+
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ error: 'Name is required and must be a string' });
     }
-  });
+    if (!startDate || !isValidISODate(startDate)) {
+      return res.status(400).json({ error: 'Valid startDate is required (ISO 8601 format)' });
+    }
+    if (!endDate || !isValidISODate(endDate)) {
+      return res.status(400).json({ error: 'Valid endDate is required (ISO 8601 format)' });
+    }
+    if (!ownerId || !isValidUUID(ownerId)) {
+      return res.status(400).json({ error: 'Valid ownerId (UUID) is required' });
+    }
+
+    const query = `
+      INSERT INTO projects (name, start_date, end_date, owner_id, description)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `;
+    
+    const result = await pool.query(query, [name, startDate, endDate, ownerId, description || null]);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating project:', error);
+    if (error.message.includes('check_project_dates')) {
+      return res.status(400).json({ error: 'End date must be after or equal to start date' });
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-app.delete('/api/deliverabledependencies/:source_id/:target_id', (req, res) => {
-  const { source_id, target_id } = req.params;
-
-  deleteDeliverableDependency(source_id, target_id, (err) => {
-    if (err) {
-      res.status(500).json({ message: "Error deleting deliverable dependency" });
-    } else {
-      res.json({ message: "Deliverable dependency deleted successfully" });
+// Get all projects (with optional owner filter)
+app.get('/api/projects', async (req, res) => {
+  try {
+    const { ownerId } = req.query;
+    
+    let query = 'SELECT * FROM projects';
+    let params = [];
+    
+    if (ownerId) {
+      if (!isValidUUID(ownerId)) {
+        return res.status(400).json({ error: 'Invalid ownerId format' });
+      }
+      query += ' WHERE owner_id = $1';
+      params.push(ownerId);
     }
-  });
+    
+    query += ' ORDER BY created_at DESC';
+    
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching projects:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-app.delete('/api/deliverabletasks/:deliverable_id/:task_id', (req, res) => {
-  const { deliverable_id, task_id } = req.params;
+// Get project by ID
+app.get('/api/projects/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
 
-  deleteDeliverableTask(deliverable_id, task_id, (err) => {
-    if (err) {
-      res.status(500).json({ message: "Error deleting deliverable task" });
-    } else {
-      res.json({ message: "Deliverable task deleted successfully" });
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid project ID format' });
     }
-  });
+
+    const result = await pool.query('SELECT * FROM projects WHERE project_id = $1', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching project:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-app.delete('/api/taskdependencies/:source_id/:target_id', (req, res) => {
-  const { source_id, target_id } = req.params;
+// Update project
+app.put('/api/projects/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, startDate, endDate, ownerId, description } = req.body;
 
-  deleteTaskDependency(source_id, target_id, (err) => {
-    if (err) {
-      res.status(500).json({ message: "Error deleting task dependency" });
-    } else {
-      res.json({ message: "Task dependency deleted successfully" });
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid project ID format' });
     }
-  });
+
+    if (name !== undefined && typeof name !== 'string') {
+      return res.status(400).json({ error: 'Name must be a string' });
+    }
+    if (startDate !== undefined && !isValidISODate(startDate)) {
+      return res.status(400).json({ error: 'Invalid startDate format' });
+    }
+    if (endDate !== undefined && !isValidISODate(endDate)) {
+      return res.status(400).json({ error: 'Invalid endDate format' });
+    }
+    if (ownerId !== undefined && !isValidUUID(ownerId)) {
+      return res.status(400).json({ error: 'Invalid ownerId format' });
+    }
+
+    const query = `
+      UPDATE projects 
+      SET name = COALESCE($1, name),
+          start_date = COALESCE($2, start_date),
+          end_date = COALESCE($3, end_date),
+          owner_id = COALESCE($4, owner_id),
+          description = COALESCE($5, description)
+      WHERE project_id = $6
+      RETURNING *
+    `;
+    
+    const result = await pool.query(query, [name, startDate, endDate, ownerId, description, id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating project:', error);
+    if (error.message.includes('check_project_dates')) {
+      return res.status(400).json({ error: 'End date must be after or equal to start date' });
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-app.delete('/api/taskrisks/:task_id/:risk_id', (req, res) => {
-  const { task_id, risk_id } = req.params;
+// Delete project
+app.delete('/api/projects/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
 
-  deleteTaskRisk(task_id, risk_id, (err) => {
-    if (err) {
-      res.status(500).json({ message: "Error deleting task risk" });
-    } else {
-      res.json({ message: "Task risk deleted successfully" });
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid project ID format' });
     }
-  });
+
+    const result = await pool.query('DELETE FROM projects WHERE project_id = $1 RETURNING project_id', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    res.json({ message: 'Project deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting project:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-app.delete('/api/projectrisks/:project_id/:risk_id', (req, res) => {
-  const { project_id, risk_id } = req.params;
+// Get tasks for a project
+app.get('/api/projects/:id/tasks', async (req, res) => {
+  try {
+    const { id } = req.params;
 
-  deleteProjectRisk(project_id, risk_id, (err) => {
-    if (err) {
-      res.status(500).json({ message: "Error deleting project risk" });
-    } else {
-      res.json({ message: "Project risk deleted successfully" });
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid project ID format' });
     }
-  });
+
+    const result = await pool.query(
+      'SELECT * FROM tasks WHERE project_id = $1 ORDER BY start_date',
+      [id]
+    );
+    
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching project tasks:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-// === UPDATE FUNCTIONS ===
+// Get milestones for a project
+app.get('/api/projects/:id/milestones', async (req, res) => {
+  try {
+    const { id } = req.params;
 
-function updateProject(id, name, start_date, end_date, owner, description, callback) {
-  const sql = `UPDATE Projects SET name = ?, start_date = ?, end_date = ?, owner = ?, description = ? WHERE project_id = ?`;
-  db.run(sql, [name, start_date, end_date, owner, description, id], function (err) {
-    if (err) {
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Project not found"));
-    } else {
-      callback(null);
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid project ID format' });
     }
-  });
+
+    const result = await pool.query(
+      'SELECT * FROM milestones WHERE project_id = $1 ORDER BY start_date',
+      [id]
+    );
+    
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching project milestones:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ============================================================================
+// TASKS ROUTES
+// ============================================================================
+
+// Create task
+app.post('/api/tasks', async (req, res) => {
+  try {
+    const { name, startDate, endDate, duration, progress, load, projectId, description } = req.body;
+
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ error: 'Name is required and must be a string' });
+    }
+    if (!startDate || !isValidISODate(startDate)) {
+      return res.status(400).json({ error: 'Valid startDate is required (ISO 8601 format)' });
+    }
+    if (!endDate || !isValidISODate(endDate)) {
+      return res.status(400).json({ error: 'Valid endDate is required (ISO 8601 format)' });
+    }
+    if (typeof duration !== 'number' || duration <= 0) {
+      return res.status(400).json({ error: 'Duration is required and must be a positive number' });
+    }
+    if (typeof progress !== 'number' || progress < 0 || progress > 100) {
+      return res.status(400).json({ error: 'Progress is required and must be between 0 and 100' });
+    }
+    if (load !== undefined && load !== null && (typeof load !== 'number' || load < 0)) {
+      return res.status(400).json({ error: 'Load must be a non-negative number' });
+    }
+    if (projectId && !isValidUUID(projectId)) {
+      return res.status(400).json({ error: 'ProjectId must be a valid UUID' });
+    }
+
+    const query = `
+      INSERT INTO tasks (name, start_date, end_date, duration, progress, load, project_id, description)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *
+    `;
+    
+    const result = await pool.query(query, [
+      name, startDate, endDate, duration, progress, load || null, projectId || null, description || null
+    ]);
+    
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating task:', error);
+    if (error.message.includes('check_task_dates')) {
+      return res.status(400).json({ error: 'End date must be after or equal to start date' });
+    }
+    if (error.code === '23503') {
+      return res.status(400).json({ error: 'Project does not exist' });
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get all tasks (with optional project filter)
+app.get('/api/tasks', async (req, res) => {
+  try {
+    const { projectId } = req.query;
+    
+    let query = 'SELECT * FROM tasks';
+    let params = [];
+    
+    if (projectId) {
+      if (!isValidUUID(projectId)) {
+        return res.status(400).json({ error: 'Invalid projectId format' });
+      }
+      query += ' WHERE project_id = $1';
+      params.push(projectId);
+    }
+    
+    query += ' ORDER BY start_date';
+    
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching tasks:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get task by ID
+app.get('/api/tasks/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid task ID format' });
+    }
+
+    const result = await pool.query('SELECT * FROM tasks WHERE task_id = $1', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching task:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update task
+app.put('/api/tasks/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, startDate, endDate, duration, progress, load, projectId, description } = req.body;
+
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid task ID format' });
+    }
+
+    if (name !== undefined && typeof name !== 'string') {
+      return res.status(400).json({ error: 'Name must be a string' });
+    }
+    if (startDate !== undefined && !isValidISODate(startDate)) {
+      return res.status(400).json({ error: 'Invalid startDate format' });
+    }
+    if (endDate !== undefined && !isValidISODate(endDate)) {
+      return res.status(400).json({ error: 'Invalid endDate format' });
+    }
+    if (duration !== undefined && (typeof duration !== 'number' || duration <= 0)) {
+      return res.status(400).json({ error: 'Duration must be a positive number' });
+    }
+    if (progress !== undefined && (typeof progress !== 'number' || progress < 0 || progress > 100)) {
+      return res.status(400).json({ error: 'Progress must be between 0 and 100' });
+    }
+    if (load !== undefined && load !== null && (typeof load !== 'number' || load < 0)) {
+      return res.status(400).json({ error: 'Load must be a non-negative number' });
+    }
+    if (projectId !== undefined && projectId !== null && !isValidUUID(projectId)) {
+      return res.status(400).json({ error: 'Invalid projectId format' });
+    }
+
+    const query = `
+      UPDATE tasks 
+      SET name = COALESCE($1, name),
+          start_date = COALESCE($2, start_date),
+          end_date = COALESCE($3, end_date),
+          duration = COALESCE($4, duration),
+          progress = COALESCE($5, progress),
+          load = COALESCE($6, load),
+          project_id = COALESCE($7, project_id),
+          description = COALESCE($8, description)
+      WHERE task_id = $9
+      RETURNING *
+    `;
+    
+    const result = await pool.query(query, [
+      name, startDate, endDate, duration, progress, load, projectId, description, id
+    ]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating task:', error);
+    if (error.message.includes('check_task_dates')) {
+      return res.status(400).json({ error: 'End date must be after or equal to start date' });
+    }
+    if (error.code === '23503') {
+      return res.status(400).json({ error: 'Project does not exist' });
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete task
+app.delete('/api/tasks/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid task ID format' });
+    }
+
+    const result = await pool.query('DELETE FROM tasks WHERE task_id = $1 RETURNING task_id', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    res.json({ message: 'Task deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting task:', error);
+    if (error.code === '23503') {
+      return res.status(400).json({ error: 'Cannot delete task with existing dependencies or assignments' });
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ============================================================================
+// RISKS ROUTES
+// ============================================================================
+
+// Create risk
+app.post('/api/risks', async (req, res) => {
+  try {
+    const {
+      name, preImpact, postImpact, preLikelihood, postLikelihood,
+      preScore, postScore, preparedness, date, description
+    } = req.body;
+
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ error: 'Name is required and must be a string' });
+    }
+    if (typeof preImpact !== 'number' || preImpact < 1 || preImpact > 5) {
+      return res.status(400).json({ error: 'preImpact is required and must be between 1 and 5' });
+    }
+    if (typeof postImpact !== 'number' || postImpact < 1 || postImpact > 5) {
+      return res.status(400).json({ error: 'postImpact is required and must be between 1 and 5' });
+    }
+    if (typeof preLikelihood !== 'number' || preLikelihood < 1 || preLikelihood > 5) {
+      return res.status(400).json({ error: 'preLikelihood is required and must be between 1 and 5' });
+    }
+    if (typeof postLikelihood !== 'number' || postLikelihood < 1 || postLikelihood > 5) {
+      return res.status(400).json({ error: 'postLikelihood is required and must be between 1 and 5' });
+    }
+    if (preScore !== undefined && preScore !== null && (typeof preScore !== 'number' || preScore < 1 || preScore > 25)) {
+      return res.status(400).json({ error: 'preScore must be between 1 and 25' });
+    }
+    if (postScore !== undefined && postScore !== null && (typeof postScore !== 'number' || postScore < 1 || postScore > 25)) {
+      return res.status(400).json({ error: 'postScore must be between 1 and 25' });
+    }
+    if (typeof preparedness !== 'number' || preparedness < 0 || preparedness > 100) {
+      return res.status(400).json({ error: 'Preparedness is required and must be between 0 and 100' });
+    }
+    if (!date || !isValidISODate(date)) {
+      return res.status(400).json({ error: 'Valid date is required (ISO 8601 format)' });
+    }
+
+    const query = `
+      INSERT INTO risks (
+        name, pre_impact, post_impact, pre_likelihood, post_likelihood,
+        pre_score, post_score, preparedness, date, description
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *
+    `;
+    
+    const result = await pool.query(query, [
+      name, preImpact, postImpact, preLikelihood, postLikelihood,
+      preScore || null, postScore || null, preparedness, date, description || null
+    ]);
+    
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating risk:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get all risks
+app.get('/api/risks', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM risks ORDER BY date DESC');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching risks:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get risk by ID
+app.get('/api/risks/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid risk ID format' });
+    }
+
+    const result = await pool.query('SELECT * FROM risks WHERE risk_id = $1', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Risk not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching risk:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update risk
+app.put('/api/risks/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      name, preImpact, postImpact, preLikelihood, postLikelihood,
+      preScore, postScore, preparedness, date, description
+    } = req.body;
+
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid risk ID format' });
+    }
+
+    if (name !== undefined && typeof name !== 'string') {
+      return res.status(400).json({ error: 'Name must be a string' });
+    }
+    if (preImpact !== undefined && (typeof preImpact !== 'number' || preImpact < 1 || preImpact > 5)) {
+      return res.status(400).json({ error: 'preImpact must be between 1 and 5' });
+    }
+    if (postImpact !== undefined && (typeof postImpact !== 'number' || postImpact < 1 || postImpact > 5)) {
+      return res.status(400).json({ error: 'postImpact must be between 1 and 5' });
+    }
+    if (preLikelihood !== undefined && (typeof preLikelihood !== 'number' || preLikelihood < 1 || preLikelihood > 5)) {
+      return res.status(400).json({ error: 'preLikelihood must be between 1 and 5' });
+    }
+    if (postLikelihood !== undefined && (typeof postLikelihood !== 'number' || postLikelihood < 1 || postLikelihood > 5)) {
+      return res.status(400).json({ error: 'postLikelihood must be between 1 and 5' });
+    }
+    if (preScore !== undefined && preScore !== null && (typeof preScore !== 'number' || preScore < 1 || preScore > 25)) {
+      return res.status(400).json({ error: 'preScore must be between 1 and 25' });
+    }
+    if (postScore !== undefined && postScore !== null && (typeof postScore !== 'number' || postScore < 1 || postScore > 25)) {
+      return res.status(400).json({ error: 'postScore must be between 1 and 25' });
+    }
+    if (preparedness !== undefined && (typeof preparedness !== 'number' || preparedness < 0 || preparedness > 100)) {
+      return res.status(400).json({ error: 'Preparedness must be between 0 and 100' });
+    }
+    if (date !== undefined && !isValidISODate(date)) {
+      return res.status(400).json({ error: 'Invalid date format' });
+    }
+
+    const query = `
+      UPDATE risks 
+      SET name = COALESCE($1, name),
+          pre_impact = COALESCE($2, pre_impact),
+          post_impact = COALESCE($3, post_impact),
+          pre_likelihood = COALESCE($4, pre_likelihood),
+          post_likelihood = COALESCE($5, post_likelihood),
+          pre_score = COALESCE($6, pre_score),
+          post_score = COALESCE($7, post_score),
+          preparedness = COALESCE($8, preparedness),
+          date = COALESCE($9, date),
+          description = COALESCE($10, description)
+      WHERE risk_id = $11
+      RETURNING *
+    `;
+    
+    const result = await pool.query(query, [
+      name, preImpact, postImpact, preLikelihood, postLikelihood,
+      preScore, postScore, preparedness, date, description, id
+    ]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Risk not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating risk:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete risk
+app.delete('/api/risks/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid risk ID format' });
+    }
+
+    const result = await pool.query('DELETE FROM risks WHERE risk_id = $1 RETURNING risk_id', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Risk not found' });
+    }
+
+    res.json({ message: 'Risk deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting risk:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ============================================================================
+// MILESTONES ROUTES
+// ============================================================================
+
+// Create milestone
+app.post('/api/milestones', async (req, res) => {
+  try {
+    const { name, startDate, endDate, ownerId, projectId, description, complete } = req.body;
+
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ error: 'Name is required and must be a string' });
+    }
+    if (!startDate || !isValidISODate(startDate)) {
+      return res.status(400).json({ error: 'Valid startDate is required (ISO 8601 format)' });
+    }
+    if (!endDate || !isValidISODate(endDate)) {
+      return res.status(400).json({ error: 'Valid endDate is required (ISO 8601 format)' });
+    }
+    if (!ownerId || !isValidUUID(ownerId)) {
+      return res.status(400).json({ error: 'Valid ownerId (UUID) is required' });
+    }
+    if (projectId && !isValidUUID(projectId)) {
+      return res.status(400).json({ error: 'ProjectId must be a valid UUID' });
+    }
+    if (complete !== undefined && typeof complete !== 'boolean') {
+      return res.status(400).json({ error: 'Complete must be a boolean' });
+    }
+
+    const query = `
+      INSERT INTO milestones (name, start_date, end_date, owner_id, project_id, description, complete)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *
+    `;
+    
+    const result = await pool.query(query, [
+      name, startDate, endDate, ownerId, projectId || null, description || null, complete !== undefined ? complete : false
+    ]);
+    
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating milestone:', error);
+    if (error.message.includes('check_milestone_dates')) {
+      return res.status(400).json({ error: 'End date must be after or equal to start date' });
+    }
+    if (error.code === '23503') {
+      return res.status(400).json({ error: 'Project does not exist' });
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get all milestones (with optional filters)
+app.get('/api/milestones', async (req, res) => {
+  try {
+    const { projectId, ownerId, complete } = req.query;
+    
+    let query = 'SELECT * FROM milestones WHERE 1=1';
+    let params = [];
+    let paramCount = 1;
+    
+    if (projectId) {
+      if (!isValidUUID(projectId)) {
+        return res.status(400).json({ error: 'Invalid projectId format' });
+      }
+      query += ` AND project_id = $${paramCount}`;
+      params.push(projectId);
+      paramCount++;
+    }
+
+    if (ownerId) {
+      if (!isValidUUID(ownerId)) {
+        return res.status(400).json({ error: 'Invalid ownerId format' });
+      }
+      query += ` AND owner_id = $${paramCount}`;
+      params.push(ownerId);
+      paramCount++;
+    }
+
+    if (complete !== undefined) {
+      query += ` AND complete = $${paramCount}`;
+      params.push(complete === 'true');
+      paramCount++;
+    }
+    
+    query += ' ORDER BY start_date';
+    
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching milestones:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get milestone by ID
+app.get('/api/milestones/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid milestone ID format' });
+    }
+
+    const result = await pool.query('SELECT * FROM milestones WHERE milestone_id = $1', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Milestone not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching milestone:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update milestone
+app.put('/api/milestones/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, startDate, endDate, ownerId, projectId, description, complete } = req.body;
+
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid milestone ID format' });
+    }
+
+    if (name !== undefined && typeof name !== 'string') {
+      return res.status(400).json({ error: 'Name must be a string' });
+    }
+    if (startDate !== undefined && !isValidISODate(startDate)) {
+      return res.status(400).json({ error: 'Invalid startDate format' });
+    }
+    if (endDate !== undefined && !isValidISODate(endDate)) {
+      return res.status(400).json({ error: 'Invalid endDate format' });
+    }
+    if (ownerId !== undefined && !isValidUUID(ownerId)) {
+      return res.status(400).json({ error: 'Invalid ownerId format' });
+    }
+    if (projectId !== undefined && projectId !== null && !isValidUUID(projectId)) {
+      return res.status(400).json({ error: 'Invalid projectId format' });
+    }
+    if (complete !== undefined && typeof complete !== 'boolean') {
+      return res.status(400).json({ error: 'Complete must be a boolean' });
+    }
+
+    const query = `
+      UPDATE milestones 
+      SET name = COALESCE($1, name),
+          start_date = COALESCE($2, start_date),
+          end_date = COALESCE($3, end_date),
+          owner_id = COALESCE($4, owner_id),
+          project_id = COALESCE($5, project_id),
+          description = COALESCE($6, description),
+          complete = COALESCE($7, complete)
+      WHERE milestone_id = $8
+      RETURNING *
+    `;
+    
+    const result = await pool.query(query, [
+      name, startDate, endDate, ownerId, projectId, description, complete, id
+    ]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Milestone not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating milestone:', error);
+    if (error.message.includes('check_milestone_dates')) {
+      return res.status(400).json({ error: 'End date must be after or equal to start date' });
+    }
+    if (error.code === '23503') {
+      return res.status(400).json({ error: 'Project does not exist' });
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete milestone
+app.delete('/api/milestones/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid milestone ID format' });
+    }
+
+    const result = await pool.query('DELETE FROM milestones WHERE milestone_id = $1 RETURNING milestone_id', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Milestone not found' });
+    }
+
+    res.json({ message: 'Milestone deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting milestone:', error);
+    if (error.code === '23503') {
+      return res.status(400).json({ error: 'Cannot delete milestone with existing dependencies or tasks' });
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ============================================================================
+// RESOURCES ROUTES
+// ============================================================================
+
+// Create resource
+app.post('/api/resources', async (req, res) => {
+  try {
+    const { name, capacity, role, teamId, description } = req.body;
+
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ error: 'Name is required and must be a string' });
+    }
+    if (typeof capacity !== 'number' || capacity < 0) {
+      return res.status(400).json({ error: 'Capacity is required and must be a non-negative number' });
+    }
+    if (!role || typeof role !== 'string') {
+      return res.status(400).json({ error: 'Role is required and must be a string' });
+    }
+    if (!teamId || !isValidUUID(teamId)) {
+      return res.status(400).json({ error: 'Valid teamId (UUID) is required' });
+    }
+
+    const query = `
+      INSERT INTO resources (name, capacity, role, team_id, description)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `;
+    
+    const result = await pool.query(query, [name, capacity, role, teamId, description || null]);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating resource:', error);
+    if (error.code === '23503') {
+      return res.status(400).json({ error: 'Team does not exist' });
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get all resources (with optional team filter)
+app.get('/api/resources', async (req, res) => {
+  try {
+    const { teamId } = req.query;
+    
+    let query = 'SELECT * FROM resources';
+    let params = [];
+    
+    if (teamId) {
+      if (!isValidUUID(teamId)) {
+        return res.status(400).json({ error: 'Invalid teamId format' });
+      }
+      query += ' WHERE team_id = $1';
+      params.push(teamId);
+    }
+    
+    query += ' ORDER BY name';
+    
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching resources:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get resource by ID
+app.get('/api/resources/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid resource ID format' });
+    }
+
+    const result = await pool.query('SELECT * FROM resources WHERE resource_id = $1', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Resource not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching resource:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update resource
+app.put('/api/resources/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, capacity, role, teamId, description } = req.body;
+
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid resource ID format' });
+    }
+
+    if (name !== undefined && typeof name !== 'string') {
+      return res.status(400).json({ error: 'Name must be a string' });
+    }
+    if (capacity !== undefined && (typeof capacity !== 'number' || capacity < 0)) {
+      return res.status(400).json({ error: 'Capacity must be a non-negative number' });
+    }
+    if (role !== undefined && typeof role !== 'string') {
+      return res.status(400).json({ error: 'Role must be a string' });
+    }
+    if (teamId !== undefined && !isValidUUID(teamId)) {
+      return res.status(400).json({ error: 'Invalid teamId format' });
+    }
+
+    const query = `
+      UPDATE resources 
+      SET name = COALESCE($1, name),
+          capacity = COALESCE($2, capacity),
+          role = COALESCE($3, role),
+          team_id = COALESCE($4, team_id),
+          description = COALESCE($5, description)
+      WHERE resource_id = $6
+      RETURNING *
+    `;
+    
+    const result = await pool.query(query, [name, capacity, role, teamId, description, id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Resource not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating resource:', error);
+    if (error.code === '23503') {
+      return res.status(400).json({ error: 'Team does not exist' });
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete resource
+app.delete('/api/resources/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid resource ID format' });
+    }
+
+    const result = await pool.query('DELETE FROM resources WHERE resource_id = $1 RETURNING resource_id', [id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Resource not found' });
+    }
+
+    res.json({ message: 'Resource deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting resource:', error);
+    if (error.code === '23503') {
+      return res.status(400).json({ error: 'Cannot delete resource with existing assignments' });
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get resources for a team
+app.get('/api/teams/:id/resources', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid team ID format' });
+    }
+
+    const result = await pool.query(
+      'SELECT * FROM resources WHERE team_id = $1 ORDER BY name',
+      [id]
+    );
+    
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching team resources:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ============================================================================
+// ASSIGNMENTS ROUTES (Junction Table)
+// ============================================================================
+
+// Create assignment
+app.post('/api/assignments', async (req, res) => {
+  try {
+    const { taskId, resourceId } = req.body;
+
+    if (!taskId || !isValidUUID(taskId)) {
+      return res.status(400).json({ error: 'Valid taskId (UUID) is required' });
+    }
+    if (!resourceId || !isValidUUID(resourceId)) {
+      return res.status(400).json({ error: 'Valid resourceId (UUID) is required' });
+    }
+
+    const query = `
+      INSERT INTO assignments (task_id, resource_id)
+      VALUES ($1, $2)
+      RETURNING *
+    `;
+    
+    const result = await pool.query(query, [taskId, resourceId]);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating assignment:', error);
+    if (error.code === '23503') {
+      return res.status(400).json({ error: 'Task or resource does not exist' });
+    }
+    if (error.code === '23505') {
+      return res.status(400).json({ error: 'Assignment already exists' });
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get all assignments (with optional filters)
+app.get('/api/assignments', async (req, res) => {
+  try {
+    const { taskId, resourceId } = req.query;
+    
+    let query = 'SELECT * FROM assignments WHERE 1=1';
+    let params = [];
+    let paramCount = 1;
+    
+    if (taskId) {
+      if (!isValidUUID(taskId)) {
+        return res.status(400).json({ error: 'Invalid taskId format' });
+      }
+      query += ` AND task_id = $${paramCount}`;
+      params.push(taskId);
+      paramCount++;
+    }
+
+    if (resourceId) {
+      if (!isValidUUID(resourceId)) {
+        return res.status(400).json({ error: 'Invalid resourceId format' });
+      }
+      query += ` AND resource_id = $${paramCount}`;
+      params.push(resourceId);
+      paramCount++;
+    }
+    
+    query += ' ORDER BY created_at DESC';
+    
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching assignments:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete assignment
+app.delete('/api/assignments/:taskId/:resourceId', async (req, res) => {
+  try {
+    const { taskId, resourceId } = req.params;
+
+    if (!isValidUUID(taskId)) {
+      return res.status(400).json({ error: 'Invalid task ID format' });
+    }
+    if (!isValidUUID(resourceId)) {
+      return res.status(400).json({ error: 'Invalid resource ID format' });
+    }
+
+    const result = await pool.query(
+      'DELETE FROM assignments WHERE task_id = $1 AND resource_id = $2 RETURNING *',
+      [taskId, resourceId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Assignment not found' });
+    }
+
+    res.json({ message: 'Assignment deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting assignment:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ============================================================================
+// MILESTONE DEPENDENCIES ROUTES (Junction Table)
+// ============================================================================
+
+// Create milestone dependency
+app.post('/api/milestone-dependencies', async (req, res) => {
+  try {
+    const { sourceId, targetId, dependencyType, lag } = req.body;
+
+    if (!sourceId || !isValidUUID(sourceId)) {
+      return res.status(400).json({ error: 'Valid sourceId (UUID) is required' });
+    }
+    if (!targetId || !isValidUUID(targetId)) {
+      return res.status(400).json({ error: 'Valid targetId (UUID) is required' });
+    }
+    if (sourceId === targetId) {
+      return res.status(400).json({ error: 'A milestone cannot depend on itself' });
+    }
+    if (!dependencyType || typeof dependencyType !== 'string') {
+      return res.status(400).json({ error: 'DependencyType is required and must be a string' });
+    }
+    if (typeof lag !== 'number' || lag < 0) {
+      return res.status(400).json({ error: 'Lag is required and must be a non-negative number' });
+    }
+
+    const query = `
+      INSERT INTO milestone_dependencies (source_id, target_id, dependency_type, lag)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *
+    `;
+    
+    const result = await pool.query(query, [sourceId, targetId, dependencyType, lag]);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating milestone dependency:', error);
+    if (error.code === '23503') {
+      return res.status(400).json({ error: 'Source or target milestone does not exist' });
+    }
+    if (error.code === '23505') {
+      return res.status(400).json({ error: 'Dependency already exists' });
+    }
+    if (error.message.includes('check_no_self_dependency')) {
+      return res.status(400).json({ error: 'A milestone cannot depend on itself' });
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get all milestone dependencies (with optional filters)
+app.get('/api/milestone-dependencies', async (req, res) => {
+  try {
+    const { sourceId, targetId } = req.query;
+    
+    let query = 'SELECT * FROM milestone_dependencies WHERE 1=1';
+    let params = [];
+    let paramCount = 1;
+    
+    if (sourceId) {
+      if (!isValidUUID(sourceId)) {
+        return res.status(400).json({ error: 'Invalid sourceId format' });
+      }
+      query += ` AND source_id = $${paramCount}`;
+      params.push(sourceId);
+      paramCount++;
+    }
+
+    if (targetId) {
+      if (!isValidUUID(targetId)) {
+        return res.status(400).json({ error: 'Invalid targetId format' });
+      }
+      query += ` AND target_id = $${paramCount}`;
+      params.push(targetId);
+      paramCount++;
+    }
+    
+    query += ' ORDER BY created_at DESC';
+    
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching milestone dependencies:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete milestone dependency
+app.delete('/api/milestone-dependencies/:sourceId/:targetId', async (req, res) => {
+  try {
+    const { sourceId, targetId } = req.params;
+
+    if (!isValidUUID(sourceId)) {
+      return res.status(400).json({ error: 'Invalid source ID format' });
+    }
+    if (!isValidUUID(targetId)) {
+      return res.status(400).json({ error: 'Invalid target ID format' });
+    }
+
+    const result = await pool.query(
+      'DELETE FROM milestone_dependencies WHERE source_id = $1 AND target_id = $2 RETURNING *',
+      [sourceId, targetId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Milestone dependency not found' });
+    }
+
+    res.json({ message: 'Milestone dependency deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting milestone dependency:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ============================================================================
+// MILESTONE TASKS ROUTES (Junction Table)
+// ============================================================================
+
+// Create milestone-task relationship
+app.post('/api/milestone-tasks', async (req, res) => {
+  try {
+    const { milestoneId, taskId } = req.body;
+
+    if (!milestoneId || !isValidUUID(milestoneId)) {
+      return res.status(400).json({ error: 'Valid milestoneId (UUID) is required' });
+    }
+    if (!taskId || !isValidUUID(taskId)) {
+      return res.status(400).json({ error: 'Valid taskId (UUID) is required' });
+    }
+
+    const query = `
+      INSERT INTO milestone_tasks (milestone_id, task_id)
+      VALUES ($1, $2)
+      RETURNING *
+    `;
+    
+    const result = await pool.query(query, [milestoneId, taskId]);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating milestone-task relationship:', error);
+    if (error.code === '23503') {
+      return res.status(400).json({ error: 'Milestone or task does not exist' });
+    }
+    if (error.code === '23505') {
+      return res.status(400).json({ error: 'Relationship already exists' });
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get all milestone-task relationships (with optional filters)
+app.get('/api/milestone-tasks', async (req, res) => {
+  try {
+    const { milestoneId, taskId } = req.query;
+    
+    let query = 'SELECT * FROM milestone_tasks WHERE 1=1';
+    let params = [];
+    let paramCount = 1;
+    
+    if (milestoneId) {
+      if (!isValidUUID(milestoneId)) {
+        return res.status(400).json({ error: 'Invalid milestoneId format' });
+      }
+      query += ` AND milestone_id = $${paramCount}`;
+      params.push(milestoneId);
+      paramCount++;
+    }
+
+    if (taskId) {
+      if (!isValidUUID(taskId)) {
+        return res.status(400).json({ error: 'Invalid taskId format' });
+      }
+      query += ` AND task_id = $${paramCount}`;
+      params.push(taskId);
+      paramCount++;
+    }
+    
+    query += ' ORDER BY created_at DESC';
+    
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching milestone-task relationships:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete milestone-task relationship
+app.delete('/api/milestone-tasks/:milestoneId/:taskId', async (req, res) => {
+  try {
+    const { milestoneId, taskId } = req.params;
+
+    if (!isValidUUID(milestoneId)) {
+      return res.status(400).json({ error: 'Invalid milestone ID format' });
+    }
+    if (!isValidUUID(taskId)) {
+      return res.status(400).json({ error: 'Invalid task ID format' });
+    }
+
+    const result = await pool.query(
+      'DELETE FROM milestone_tasks WHERE milestone_id = $1 AND task_id = $2 RETURNING *',
+      [milestoneId, taskId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Milestone-task relationship not found' });
+    }
+
+    res.json({ message: 'Milestone-task relationship deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting milestone-task relationship:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get tasks for a milestone
+app.get('/api/milestones/:id/tasks', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!isValidUUID(id)) {
+      return res.status(400).json({ error: 'Invalid milestone ID format' });
+    }
+
+    const query = `
+      SELECT t.* 
+      FROM tasks t
+      INNER JOIN milestone_tasks mt ON t.task_id = mt.task_id
+      WHERE mt.milestone_id = $1
+      ORDER BY t.start_date
+    `;
+    
+    const result = await pool.query(query, [id]);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching milestone tasks:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ============================================================================
+// PROJECT RISKS ROUTES (Junction Table)
+// ============================================================================
+
+// Create project-risk relationship
+app.post('/api/project-risks', async (req, res) => {
+  try {
+    const { projectId, riskId } = req.body;
+
+    if (!projectId || !isValidUUID(projectId)) {
+      return res.status(400).json({ error: 'Valid projectId (UUID) is required' });
+    }
+    if (!riskId || !isValidUUID(riskId)) {
+      return res.status(400).json({ error: 'Valid riskId (UUID) is required' });
+    }
+
+    const query = `
+      INSERT INTO project_risks (project_id, risk_id)
+      VALUES ($1, $2)
+      RETURNING *
+    `;
+    
+    const result = await pool.query(query, [projectId, riskId]);
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating project-risk relationship:', error);
+    if (error.code === '23503') {
+      return res.status(400).json({ error: 'Project or risk does not exist' });
+    }
+    if (error.code === '23505') {
+      return res.status(400).json({ error: 'Relationship already exists' });
+    }
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get all project-risk relationships (with optional filters)
+app.get('/api/project-risks', async (req, res) => {
+  try {
+    const { projectId, riskId } = req.query;
+    
+    let query = 'SELECT * FROM project_risks WHERE 1=1';
+    let params = [];
+    let paramCount = 1;
+    
+    if (projectId) {
+      if (!isValidUUID(projectId)) {
+        return res.status(400).json({ error: 'Invalid projectId format' });
+      }
+      query += ` AND project_id = $${paramCount}`;
+      params.push(projectId);
+      paramCount++;
+    }
+
+    if (riskId) {
+      if (!isValidUUID(riskId)) {
+        return res.status(400).json({ error: 'Invalid riskId format' });
+      }
+      query += ` AND risk_id = $${paramCount}`;
+      params.push(riskId);
+      paramCount++;
+    }
+    
+    query += ' ORDER BY created_at DESC';
+    
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching project-risk relationships:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete project-risk relationship
+app.delete('/api/project-risks/:projectId/:riskId', async (req, res) => {
+  try {
+    const { projectId, riskId } = req.params;
+
+    if (!isValidUUID(projectId)) {
+      return res.status(400).json({ error: 'Invalid project ID format' });
+    }
+    if (!isValidUUID(riskId)) {
+      return res.status(400).json({ error: 'Invalid risk ID format' });
+    }
+
+    const result = await pool.query(
+      'DELETE FROM project_risks WHERE project_id = $1 AND risk_id = $2 RETURNING *',
+      [projectId, riskId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Project-risk relationship not found'});
+    }
+
+    res.json({ message: 'Project-risk relationship deleted successfully' });
+} catch (error) {
+console.error('Error deleting project-risk relationship:', error);
+res.status(500).json({ error: 'Internal server error' });
+}
+});
+// Get risks for a project
+app.get('/api/projects/:id/risks', async (req, res) => {
+try {
+const { id } = req.params;
+if (!isValidUUID(id)) {
+  return res.status(400).json({ error: 'Invalid project ID format' });
 }
 
-function updateTask(id, name, start_date, end_date, duration, progress, project_id, description, callback) {
-  const sql = `UPDATE Tasks SET name = ?, start_date = ?, end_date = ?, duration = ?, progress = ?, project_id = ?, description = ? WHERE task_id = ?`;
-  db.run(sql, [name, start_date, end_date, duration, progress, project_id, description, id], function (err) {
-    if (err) {
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Task not found"));
-    } else {
-      callback(null);
-    }
-  });
+const query = `
+  SELECT r.* 
+  FROM risks r
+  INNER JOIN project_risks pr ON r.risk_id = pr.risk_id
+  WHERE pr.project_id = $1
+  ORDER BY r.date DESC
+`;
+
+const result = await pool.query(query, [id]);
+res.json(result.rows);
+} catch (error) {
+console.error('Error fetching project risks:', error);
+res.status(500).json({ error: 'Internal server error' });
+}
+});
+// ============================================================================
+// TASK DEPENDENCIES ROUTES (Junction Table)
+// ============================================================================
+// Create task dependency
+app.post('/api/task-dependencies', async (req, res) => {
+try {
+const { sourceId, targetId, dependencyType, lag } = req.body;
+if (!sourceId || !isValidUUID(sourceId)) {
+  return res.status(400).json({ error: 'Valid sourceId (UUID) is required' });
+}
+if (!targetId || !isValidUUID(targetId)) {
+  return res.status(400).json({ error: 'Valid targetId (UUID) is required' });
+}
+if (sourceId === targetId) {
+  return res.status(400).json({ error: 'A task cannot depend on itself' });
+}
+if (!dependencyType || typeof dependencyType !== 'string') {
+  return res.status(400).json({ error: 'DependencyType is required and must be a string' });
+}
+if (typeof lag !== 'number' || lag < 0) {
+  return res.status(400).json({ error: 'Lag is required and must be a non-negative number' });
 }
 
-function updateRisk(id, name, description, pre_impact, post_impact, pre_likelihood, post_likelihood, pre_score, post_score, preparedness, date, callback) {
-  const sql = `UPDATE Risks SET name = ?, description = ?, pre_impact = ?, post_impact = ?, pre_likelihood = ?, post_likelihood = ?, pre_score = ?, post_score = ?, preparedness = ?, date = ? WHERE risk_id = ?`;
-  db.run(sql, [name, description, pre_impact, post_impact, pre_likelihood, post_likelihood, pre_score, post_score, preparedness, date, id], function (err) {
-    if (err) {
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Risk not found"));
-    } else {
-      callback(null);
-    }
-  });
+const query = `
+  INSERT INTO task_dependencies (source_id, target_id, dependency_type, lag)
+  VALUES ($1, $2, $3, $4)
+  RETURNING *
+`;
+
+const result = await pool.query(query, [sourceId, targetId, dependencyType, lag]);
+res.status(201).json(result.rows[0]);
+} catch (error) {
+console.error('Error creating task dependency:', error);
+if (error.code === '23503') {
+return res.status(400).json({ error: 'Source or target task does not exist' });
+}
+if (error.code === '23505') {
+return res.status(400).json({ error: 'Dependency already exists' });
+}
+if (error.message.includes('check_no_self_dependency')) {
+return res.status(400).json({ error: 'A task cannot depend on itself' });
+}
+res.status(500).json({ error: 'Internal server error' });
+}
+});
+// Get all task dependencies (with optional filters)
+app.get('/api/task-dependencies', async (req, res) => {
+try {
+const { sourceId, targetId } = req.query;
+let query = 'SELECT * FROM task_dependencies WHERE 1=1';
+let params = [];
+let paramCount = 1;
+
+if (sourceId) {
+  if (!isValidUUID(sourceId)) {
+    return res.status(400).json({ error: 'Invalid sourceId format' });
+  }
+  query += ` AND source_id = $${paramCount}`;
+  params.push(sourceId);
+  paramCount++;
 }
 
-function updateResource(id, name, capacity, role, team_id, description, callback) {
-  const sql = `UPDATE Resources SET name = ?, capacity = ?, role = ?, team_id = ?, description = ? WHERE resource_id = ?`;
-  db.run(sql, [name, capacity, role, team_id, description, id], function (err) {
-    if (err) {
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Resource not found"));
-    } else {
-      callback(null);
-    }
-  });
+if (targetId) {
+  if (!isValidUUID(targetId)) {
+    return res.status(400).json({ error: 'Invalid targetId format' });
+  }
+  query += ` AND target_id = $${paramCount}`;
+  params.push(targetId);
+  paramCount++;
 }
 
-function updateDeliverable(id, name, start_date, end_date, complete, owner, project_id, description, callback) {
-  const sql = `UPDATE Deliverables SET name = ?, start_date = ?, end_date = ?, complete = ?, owner = ?, project_id = ?, description = ? WHERE deliverable_id = ?`;
-  db.run(sql, [name, start_date, end_date, complete, owner, project_id, description, id], function (err) {
-    if (err) {
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Deliverable not found"));
-    } else {
-      callback(null);
-    }
-  });
+query += ' ORDER BY created_at DESC';
+
+const result = await pool.query(query, params);
+res.json(result.rows);
+} catch (error) {
+console.error('Error fetching task dependencies:', error);
+res.status(500).json({ error: 'Internal server error' });
+}
+});
+// Delete task dependency
+app.delete('/api/task-dependencies/:sourceId/:targetId', async (req, res) => {
+try {
+const { sourceId, targetId } = req.params;
+if (!isValidUUID(sourceId)) {
+  return res.status(400).json({ error: 'Invalid source ID format' });
+}
+if (!isValidUUID(targetId)) {
+  return res.status(400).json({ error: 'Invalid target ID format' });
 }
 
-function updateTeam(id, name, description, callback) {
-  const sql = `UPDATE Teams SET name = ?, description = ? WHERE team_id = ?`;
-  db.run(sql, [name, description, id], function (err) {
-    if (err) {
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Team not found"));
-    } else {
-      callback(null);
-    }
-  });
+const result = await pool.query(
+  'DELETE FROM task_dependencies WHERE source_id = $1 AND target_id = $2 RETURNING *',
+  [sourceId, targetId]
+);
+
+if (result.rows.length === 0) {
+  return res.status(404).json({ error: 'Task dependency not found' });
 }
 
-function updateAssignment(newtask_id, newresource_id, oldtask_id, oldresource_id, callback) {
-  const sql = `UPDATE Assignments SET task_id = ?, resource_id = ? WHERE task_id = ? AND resource_id = ?`;
-  db.run(sql, [newtask_id, newresource_id, oldtask_id, oldresource_id], function (err) {
-    if (err) {
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Assignment not found"));
-    } else {
-      callback(null);
-    }
-  });
+res.json({ message: 'Task dependency deleted successfully' });
+} catch (error) {
+console.error('Error deleting task dependency:', error);
+res.status(500).json({ error: 'Internal server error' });
+}
+});
+// ============================================================================
+// TASK RISKS ROUTES (Junction Table)
+// ============================================================================
+// Create task-risk relationship
+app.post('/api/task-risks', async (req, res) => {
+try {
+const { taskId, riskId } = req.body;
+if (!taskId || !isValidUUID(taskId)) {
+  return res.status(400).json({ error: 'Valid taskId (UUID) is required' });
+}
+if (!riskId || !isValidUUID(riskId)) {
+  return res.status(400).json({ error: 'Valid riskId (UUID) is required' });
 }
 
-function updateDeliverableDependency(oldSourceId, oldTargetId, newSourceId, newTargetId, dependency_type, lag, callback) {
-  const sql = `UPDATE DeliverableDependencies SET source_id = ?, target_id = ?, dependency_type = ?, lag = ?WHERE source_id = ? AND target_id = ?`;
+const query = `
+  INSERT INTO task_risks (task_id, risk_id)
+  VALUES ($1, $2)
+  RETURNING *
+`;
 
-  db.run(sql, [newSourceId, newTargetId, dependency_type, lag, oldSourceId, oldTargetId], function (err) {
-    if (err) {
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Deliverable dependency not found"));
-    } else {
-      callback(null);
-    }
-  });
+const result = await pool.query(query, [taskId, riskId]);
+res.status(201).json(result.rows[0]);
+} catch (error) {
+console.error('Error creating task-risk relationship:', error);
+if (error.code === '23503') {
+return res.status(400).json({ error: 'Task or risk does not exist' });
+}
+if (error.code === '23505') {
+return res.status(400).json({ error: 'Relationship already exists' });
+}
+res.status(500).json({ error: 'Internal server error' });
+}
+});
+// Get all task-risk relationships (with optional filters)
+app.get('/api/task-risks', async (req, res) => {
+try {
+const { taskId, riskId } = req.query;
+let query = 'SELECT * FROM task_risks WHERE 1=1';
+let params = [];
+let paramCount = 1;
+
+if (taskId) {
+  if (!isValidUUID(taskId)) {
+    return res.status(400).json({ error: 'Invalid taskId format' });
+  }
+  query += ` AND task_id = $${paramCount}`;
+  params.push(taskId);
+  paramCount++;
 }
 
-
-function updateDeliverableTask(olddeliverable_id, oldtask_id, newdeliverable_id, newtask_id, callback) {
-  const sql = `UPDATE DeliverableTasks SET deliverable_id = ?, task_id = ? WHERE deliverable_id = ? AND task_id = ?`;
-
-  db.run(sql, [newdeliverable_id, newtask_id, olddeliverable_id, oldtask_id], function (err) {
-    if (err) {
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Deliverable task not found"));
-    } else {
-      callback(null);
-    }
-  });
+if (riskId) {
+  if (!isValidUUID(riskId)) {
+    return res.status(400).json({ error: 'Invalid riskId format' });
+  }
+  query += ` AND risk_id = $${paramCount}`;
+  params.push(riskId);
+  paramCount++;
 }
 
-function updateTaskDependency(oldSourceId, oldTargetId, newSourceId, newTargetId, dependency_type, lag, callback) {
-  const sql = `UPDATE TaskDependencies SET source_id = ?, target_id = ?, dependency_type = ?, lag = ?WHERE source_id = ? AND target_id = ?`;
+query += ' ORDER BY created_at DESC';
 
-  db.run(sql, [newSourceId, newTargetId, dependency_type, lag, oldSourceId, oldTargetId], function (err) {
-    if (err) {
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Task dependency not found"));
-    } else {
-      callback(null);
-    }
-  });
+const result = await pool.query(query, params);
+res.json(result.rows);
+} catch (error) {
+console.error('Error fetching task-risk relationships:', error);
+res.status(500).json({ error: 'Internal server error' });
+}
+});
+// Delete task-risk relationship
+app.delete('/api/task-risks/:taskId/:riskId', async (req, res) => {
+try {
+const { taskId, riskId } = req.params;
+if (!isValidUUID(taskId)) {
+  return res.status(400).json({ error: 'Invalid task ID format' });
+}
+if (!isValidUUID(riskId)) {
+  return res.status(400).json({ error: 'Invalid risk ID format' });
 }
 
-function updateTaskRisk(oldtask_id, oldrisk_id, newtask_id, newrisk_id, callback) {
-  const sql = `UPDATE TaskRisks SET task_id = ?, risk_id = ? WHERE task_id = ? AND risk_id = ?`;
+const result = await pool.query(
+  'DELETE FROM task_risks WHERE task_id = $1 AND risk_id = $2 RETURNING *',
+  [taskId, riskId]
+);
 
-  db.run(sql, [newtask_id, newrisk_id, oldtask_id, oldrisk_id], function (err) {
-    if (err) {
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Task risk not found"));
-    } else {
-      callback(null);
-    }
-  });
+if (result.rows.length === 0) {
+  return res.status(404).json({ error: 'Task-risk relationship not found' });
 }
 
-function updateProjectRisk(oldproject_id, oldrisk_id, newproject_id, newrisk_id, callback) {
-  const sql = `UPDATE ProjectRisks SET project_id = ?, risk_id = ? WHERE project_id = ? AND risk_id = ?`;
-  db.run(sql, [newproject_id, newrisk_id, oldproject_id, oldrisk_id], function (err) {
-    if (err) {
-      callback(err);
-    } else if (this.changes === 0) {
-      callback(new Error("Project risk not found"));
-    } else {
-      callback(null);
-    }
-  });
+res.json({ message: 'Task-risk relationship deleted successfully' });
+} catch (error) {
+console.error('Error deleting task-risk relationship:', error);
+res.status(500).json({ error: 'Internal server error' });
+}
+});
+// Get risks for a task
+app.get('/api/tasks/:id/risks', async (req, res) => {
+try {
+const { id } = req.params;
+if (!isValidUUID(id)) {
+  return res.status(400).json({ error: 'Invalid task ID format' });
 }
 
-// === PUT ROUTES ===
+const query = `
+  SELECT r.* 
+  FROM risks r
+  INNER JOIN task_risks tr ON r.risk_id = tr.risk_id
+  WHERE tr.task_id = $1
+  ORDER BY r.date DESC
+`;
 
-app.put('/api/projects/:id', (req, res) => {
-  const validationError = validateProject(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-  const id = req.params.id;
-  const { name, start_date, end_date, owner, description } = req.body;
-  updateProject(id, name, start_date, end_date, owner, description, (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      res.json({ message: 'Project updated successfully' });
-    }
-  });
+const result = await pool.query(query, [id]);
+res.json(result.rows);
+} catch (error) {
+console.error('Error fetching task risks:', error);
+res.status(500).json({ error: 'Internal server error' });
+}
 });
-
-app.put('/api/tasks/:id', (req, res) => {
-  const validationError = validateTask(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-  const id = req.params.id;
-  const { name, start_date, end_date, duration, progress, project_id, description } = req.body;
-  updateTask(id, name, start_date, end_date, duration, progress, project_id, description, (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      res.json({ message: 'Task updated successfully' });
-    }
-  });
-});
-
-app.put('/api/risks/:id', (req, res) => {
-  const validationError = validateRisk(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-  const id = req.params.id;
-  const { name, description, pre_impact, post_impact, pre_likelihood, post_likelihood, pre_score, post_score, preparedness, date } = req.body;
-  updateRisk(id, name, description, pre_impact, post_impact, pre_likelihood, post_likelihood, pre_score, post_score, preparedness, date, (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      res.json({ message: 'Risk updated successfully' });
-    }
-  });
-});
-
-app.put('/api/resources/:id', (req, res) => {
-  const validationError = validateResource(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-  const id = req.params.id;
-  const { name, capacity, role, team_id, description } = req.body;
-  updateResource(id, name, capacity, role, team_id, description, (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      res.json({ message: 'Resource updated successfully' });
-    }
-  });
-});
-
-app.put('/api/deliverables/:id', (req, res) => {
-  const validationError = validateDeliverable(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-  const id = req.params.id;
-  const { name, start_date, end_date, complete, owner, project_id, description } = req.body;
-  updateDeliverable(id, name, start_date, end_date, complete, owner, project_id, description, (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      res.json({ message: 'Deliverable updated successfully' });
-    }
-  });
-});
-
-app.put('/api/teams/:id', (req, res) => {
-  const validationError = validateTeam(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-  const id = req.params.id;
-  const { name, description } = req.body;
-  updateTeam(id, name, description, (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      res.json({ message: 'Team updated successfully' });
-    }
-  });
-});
-
-app.put('/api/assignments/:task_id/:resource_id', (req, res) => {
-  const oldtask_id = Number(req.params.task_id);
-  const oldresource_id = Number(req.params.resource_id);
-
-  const { task_id: newtask_id, resource_id: newresource_id } = req.body;
-
-  const validationError = validateAssignment(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-
-  updateAssignment(newtask_id, newresource_id, oldtask_id, oldresource_id, (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      res.json({ message: 'Assignment updated successfully' });
-    }
-  });
-});
-
-app.put('/api/deliverabledependencies/:source_id/:target_id', (req, res) => {
-  const oldSourceId = Number(req.params.source_id);
-  const oldTargetId = Number(req.params.target_id);
-
-  const { source_id: newSourceId, target_id: newTargetId, dependency_type, lag } = req.body;
-
-  const validationError = validateDeliverableDependency(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-
-  updateDeliverableDependency(oldSourceId, oldTargetId, newSourceId, newTargetId, dependency_type, lag, (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      res.json({ message: 'Deliverable dependency updated successfully' });
-    }
-  });
-});
-
-app.put('/api/deliverabletasks/:deliverable_id/:task_id', (req, res) => {
-  const olddeliverable_id = Number(req.params.deliverable_id);
-  const oldtask_id = Number(req.params.task_id); 
-
-  const { deliverable_id: newdeliverable_id, task_id: newtask_id } = req.body;
-
-  const validationError = validateDeliverableTask(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-
-  updateDeliverableTask(olddeliverable_id, oldtask_id, newdeliverable_id, newtask_id, (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      res.json({ message: 'Deliverable task updated successfully' });
-    }
-  });
-});
-
-app.put('/api/taskdependencies/:source_id/:target_id', (req, res) => {
-  const oldSourceId = Number(req.params.source_id);
-  const oldTargetId = Number(req.params.target_id);
-
-  const { source_id: newSourceId, target_id: newTargetId, dependency_type, lag } = req.body;
-
-  const validationError = validateTaskDependency(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-
-  updateTaskDependency(oldSourceId, oldTargetId, newSourceId, newTargetId, dependency_type, lag, (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      res.json({ message: 'Task dependency updated successfully' });
-    }
-  });
-});
-
-app.put('/api/taskrisks/:task_id/:risk_id', (req, res) => {
-  const oldtask_id = Number(req.params.task_id);
-  const oldrisk_id = Number(req.params.risk_id); 
-
-  const { task_id: newtask_id, risk_id: newrisk_id } = req.body;
-
-  const validationError = validateTaskRisk(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-
-  updateTaskRisk(oldtask_id, oldrisk_id, newtask_id, newrisk_id, (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      res.json({ message: 'Task risk updated successfully' });
-    }
-  });
-});
-
-
-app.put('/api/projectrisks/:project_id/:risk_id', (req, res) => {
-  const oldproject_id = Number(req.params.project_id);
-  const oldrisk_id = Number(req.params.risk_id); 
-
-  const { project_id: newproject_id, risk_id: newrisk_id } = req.body;
-
-  const validationError = validateProjectRisk(req.body);
-  if (validationError) {
-    return res.status(400).json({ error: validationError });
-  }
-
-  updateProjectRisk(oldproject_id, oldrisk_id, newproject_id, newrisk_id, (err) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-    } else {
-      res.json({ message: 'Project risk updated successfully' });
-    }
-  });
-});
-
-
-
+// ============================================================================
+// SERVER SETUP
+// ============================================================================
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+console.log(`Server running on port ${PORT}`);
+});
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+console.log('SIGTERM received, closing database pool');
+await pool.end();
+process.exit(0);
+});
+process.on('SIGINT', async () => {
+console.log('SIGINT received, closing database pool');
+await pool.end();
+process.exit(0);
 });
 
-setInterval(() => {
-  console.log('Server is alive');
-}, 30000);
-
+        
