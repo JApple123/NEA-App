@@ -1,5 +1,5 @@
 export async function getRisks() {
-  const response = await fetch("http://localhost:8888/api/risks");
+  const response = await fetch("http://localhost:3000/api/risks");
   if (!response.ok) throw new Error('Failed to fetch risks');
   const data = await response.json();
   return data.map(r => ({ ...r, id: r.risk_id }));
@@ -8,7 +8,7 @@ export async function getRisks() {
 
 // src/api/risks.js
 export async function createRisk(riskData) {
-  const response = await fetch("http://localhost:8888/api/risks", {
+  const response = await fetch("http://localhost:3000/api/risks", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(riskData),
@@ -18,13 +18,13 @@ export async function createRisk(riskData) {
 
   const data = await response.json();
 
-  if (!data.id) throw new Error("Risk created but no ID returned from backend");
+  if (!data.risk_id) throw new Error("Risk created but no ID returned from backend");
 
-  return { ...riskData, id: data.id }; 
+  return { ...data, id: data.risk_id };
 }
 
 export async function updateRisk(riskId, riskData) {
-  const response = await fetch(`http://localhost:8888/api/risks/${riskId}`, {
+  const response = await fetch(`http://localhost:3000/api/risks/${riskId}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(riskData),
@@ -45,7 +45,7 @@ export async function updateRisk(riskId, riskData) {
 
 // Delete a risk
 export async function deleteRisk(riskId) {
-  const response = await fetch(`http://localhost:8888/api/risks/${riskId}`, {
+  const response = await fetch(`http://localhost:3000/api/risks/${riskId}`, {
     method: "DELETE",
   });
 

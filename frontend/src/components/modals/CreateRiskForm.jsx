@@ -82,13 +82,13 @@ const CreateRiskForm = ({ onClose }) => {
       const riskPayload = {
         name: formData.name || "",
         description: formData.description || "",
-        pre_impact: preImpact,
-        post_impact: preImpact, // default same as pre_impact
-        pre_likelihood: preLikelihood,
-        post_likelihood: preLikelihood, // default same as pre_likelihood
+        preImpact: preImpact,
+        postImpact: preImpact,
+        preLikelihood: preLikelihood,
+        postLikelihood: preLikelihood,
         preparedness,
-        pre_score: preImpact * preLikelihood, // product saved automatically
-        post_score: 0, // can update later if needed
+        preScore: preImpact * preLikelihood,
+        postScore: 0,
         date: formData.date || new Date().toISOString().split("T")[0],
       };
 

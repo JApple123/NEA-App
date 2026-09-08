@@ -1,28 +1,29 @@
 import React, { useState, useEffect } from "react";
-import { createProject } from "../../api/projects";
-import { getResources } from "../../api/resources";
+import React, { useState, useEffect } from "react";
+import { createResource } from "../../api/resources";
+import { getTeams } from "../../api/teams";
 import styles from "../styles/CreateModal.module.css";
 
-const CreateProjectForm = ({ onClose }) => {
+const CreateResouceForm = ({ onClose }) => {
   const [resources, setResources] = useState([]);
   const [formData, setFormData] = useState({
     name: "",
-    start_date: "",
-    end_date: "",
-    ownerId: "",
+    capacity: "",
+    role: "",
+    teamId: "",
     description: "",
   });
 
   useEffect(() => {
-    async function fetchResources() {
+    async function fetchTeams() {
       try {
-        const data = await getResources();
-        setResources(data);
+        const data = await getTeams();
+        setTeams(data);
       } catch (err) {
-        console.error("Failed to fetch resources:", err);
+        console.error("Failed to fetch teams:", err);
       }
     }
-    fetchResources();
+    fetchTeams();
   }, []);
 
   const handleChange = (e) => {
@@ -35,17 +36,17 @@ const CreateProjectForm = ({ onClose }) => {
     try {
       const payload = {
         name: formData.name,
-        startDate: formData.start_date,
-        endDate: formData.end_date,
-        ownerId: formData.ownerId,
+        capacity: formData.capacity,
+        role: formData.role,
+        teamId: formData.teamId,
         description: formData.description,
       };
-      console.log("🟢 Sending project data:", payload);
+      console.log("Sending resource data:", payload);
       await createProject(payload);
-      console.log("✅ Project created successfully");
+      console.log("Resource created successfully");
       onClose();
     } catch (error) {
-      console.error("❌ Error creating project:", error);
+      console.error("Error creating resource:", error);
     }
   };
 
@@ -64,37 +65,37 @@ const CreateProjectForm = ({ onClose }) => {
       </div>
 
       <div className={styles.formRow}>
-        <label>Start Date</label>
+        <label>Capacity</label>
         <input
-          type="date"
-          name="start_date"
-          value={formData.start_date}
+          type="number"
+          name="capacity"
+          value={formData.capacity}
           onChange={handleChange}
           required
         />
       </div>
 
       <div className={styles.formRow}>
-        <label>End Date</label>
+        <label>role</label>
         <input
-          type="date"
-          name="end_date"
-          value={formData.end_date}
+          type="string"
+          name="role"
+          value={formData.role}
           onChange={handleChange}
           required
         />
       </div>
 
       <div className={styles.formRow}>
-        <label>Owner</label>
+        <label>Team</label>
         <select
-          name="ownerId"
-          value={formData.ownerId}
+          name="teamId"
+          value={formData.teamId}
           onChange={handleChange}
           required
         >
-          <option value="" disabled>Select an owner</option>
-          {resources.map((r) => (
+          <option value="" disabled>Select an team</option>
+          {teams.map((r) => (
             <option key={r.id} value={r.id}>{r.name}</option>
           ))}
         </select>
@@ -112,11 +113,11 @@ const CreateProjectForm = ({ onClose }) => {
       </div>
 
       <div className={styles.formActions}>
-        <button type="submit" className={styles.submitButton}>Create Project</button>
+        <button type="submit" className={styles.submitButton}>Create Resource</button>
         <button type="button" className={styles.cancelButton} onClick={onClose}>Cancel</button>
       </div>
     </form>
   );
 };
 
-export default CreateProjectForm;
+export default CreateResouceForm;

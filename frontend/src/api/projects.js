@@ -1,12 +1,12 @@
 export async function getProjects() {
-  const response = await fetch("http://localhost:8888/api/projects");
+  const response = await fetch("http://localhost:3000/api/projects");
   if (!response.ok) throw new Error('Failed to fetch projects');
   const data = await response.json();
   return data.map(p => ({ ...p, id: p.project_id }));
 }
 
 export async function createProject(projectData) {
-  const response = await fetch('http://localhost:8888/api/projects', {
+  const response = await fetch('http://localhost:3000/api/projects', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -21,9 +21,9 @@ export async function createProject(projectData) {
   return await response.json();
 }
 
-// 🆕 Update an existing project
+//  Update an existing project
 export async function updateProject(id, updatedProject) {
-  const response = await fetch(`http://localhost:8888/api/projects/${id}`, {
+  const response = await fetch(`http://localhost:3000/api/projects/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -38,9 +38,9 @@ export async function updateProject(id, updatedProject) {
   return await response.json();
 }
 
-// 🆕 Delete a project
+
 export async function deleteProject(id) {
-  const response = await fetch(`http://localhost:8888/api/projects/${id}`, {
+  const response = await fetch(`http://localhost:3000/api/projects/${id}`, {
     method: 'DELETE',
   });
 

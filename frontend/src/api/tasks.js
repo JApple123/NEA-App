@@ -1,5 +1,5 @@
 export async function getTasks() {
-  const response = await fetch("http://localhost:8888/api/tasks");
+  const response = await fetch("http://localhost:3000/api/tasks");
   if (!response.ok) throw new Error('Failed to fetch tasks');
   const data = await response.json();
   return data.map(t => ({ ...t, id: t.task_id }));
@@ -7,7 +7,7 @@ export async function getTasks() {
 
 
 export async function createTask(taskData) {
-  const response = await fetch("http://localhost:8888/api/tasks", {
+  const response = await fetch("http://localhost:3000/api/tasks", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(taskData),
@@ -21,7 +21,7 @@ export async function createTask(taskData) {
 
 export async function updateTask(taskId, taskData) {
   try {
-    const response = await fetch(`http://localhost:8888/api/tasks/${taskId}`, {
+    const response = await fetch(`http://localhost:3000/api/tasks/${taskId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(taskData), // send payload as-is
@@ -42,7 +42,7 @@ export async function updateTask(taskId, taskData) {
 }
 
 export async function deleteTask(id) {
-  const response = await fetch(`http://localhost:8888/api/tasks/${id}`, {
+  const response = await fetch(`http://localhost:3000/api/tasks/${id}`, {
     method: "DELETE",
   });
 

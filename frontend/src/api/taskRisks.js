@@ -1,17 +1,15 @@
 export async function getTaskRisks() {
-  const response = await fetch("http://localhost:8888/api/taskrisks");
+  const response = await fetch("http://localhost:3000/api/task-risks");
   if (!response.ok) throw new Error('Failed to fetch task risks');
   const data = await response.json();
   return data.map(r => ({ ...r, id: `${r.task_id}-${r.risk_id}` }));
 }
 
-
-// src/api/taskRisks.js
 export async function createTaskRisk({ task_id, risk_id }) {
-  const response = await fetch("http://localhost:8888/api/taskRisks", {
+  const response = await fetch("http://localhost:3000/api/task-risks", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ task_id, risk_id }),
+    body: JSON.stringify({ taskId: task_id, riskId: risk_id }),
   });
 
   if (!response.ok) {
@@ -25,11 +23,8 @@ export async function createTaskRisk({ task_id, risk_id }) {
 
 export async function deleteTaskRisk({ task_id, risk_id }) {
   const response = await fetch(
-    `http://localhost:8888/api/taskRisks/${task_id}/${risk_id}`,
-    {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-    }
+    `http://localhost:3000/api/task-risks/${task_id}/${risk_id}`,
+    { method: "DELETE", headers: { "Content-Type": "application/json" } }
   );
 
   if (!response.ok) {
